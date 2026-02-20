@@ -73,7 +73,1155 @@
 
       // --- PASTE START ---
 
-      // (paste your 500+ lines here)
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Search, 
+  ChevronRight, 
+  ChevronDown,
+  Home, 
+  Copy, 
+  Check, 
+  Info, 
+  Menu, 
+  X, 
+  BookOpen, 
+  Users, 
+  Target, 
+  Calendar, 
+  BarChart, 
+  FileText, 
+  School, 
+  GraduationCap,
+  ArrowLeft,
+  Heart,
+  Brain, 
+  TrendingUp,
+  Tag,
+  Wand2,
+  Sparkles,
+  Loader2,
+  Lightbulb,
+  History,
+  FileEdit,
+  Download
+} from 'lucide-react';
+
+// BRAND COLORS CONSTANTS
+const PANO_NAVY = "#161242";
+const PANO_GREEN = "#1FAA4A";
+const PANO_BLUE = "#006DB0"; 
+const DARK_GRAY = "#333333"; 
+const LIGHT_GRAY = "#EEEEEE"; 
+const SECONDARY_TURQUOISE = "#108A7D";
+const SECONDARY_TEAL = "#00A1BB";
+const SECONDARY_LAVENDER = "#867EBB";
+const SECONDARY_LIME = "#9FCC3B";
+
+// --- GEMINI API UTILS ---
+const apiKey = ""; 
+
+const callGemini = async (userQuery, retryCount = 0) => {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  
+  const systemPrompt = `
+    You are the Solara Custom Tool Assistant. Help educators design precise Custom Tools.
+    
+    GUIDELINES FOR GENERATION:
+    1. Instructions: Use PLAIN TEXT only (no markdown, no bolding, no rule tags). Keep them relatively short but highly effective.
+    2. Tool Description: Provide a professional one-sentence summary of the tool.
+    3. Category: Choose from ["Family Engagement", "Instructional Planning", "Student Engagement", "Student Support"].
+    4. Recommended Text Fields: Suggest specific context fields.
+    
+    Output MUST be a valid JSON object following the responseSchema.
+  `;
+
+  const payload = {
+    contents: [{ parts: [{ text: `Educator Need: ${userQuery}` }] }],
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    generationConfig: { 
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING" },
+          description: { type: "STRING" },
+          instructions: { type: "STRING" },
+          category: { type: "STRING" },
+          recommendedFields: {
+            type: "ARRAY",
+            items: { type: "STRING" }
+          }
+        },
+        required: ["title", "description", "instructions", "category", "recommendedFields"]
+      }
+    }
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || 'API request failed');
+    }
+
+    const result = await response.json();
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Empty AI response');
+    return JSON.parse(text);
+  } catch (error) {
+    if (retryCount < 5) {
+      const delay = Math.pow(2, retryCount) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return callGemini(userQuery, retryCount + 1);
+    }
+    throw error;
+  }
+};
+
+// --- DATA ---
+const APP_DATA = {
+  mtss: {
+    id: 'mtss',
+    title: "MTSS and Student Support Tools",
+    shortTitle: "MTSS Tools",
+    icon: <Users style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    accent: SECONDARY_TURQUOISE,
+    description: "Develop multi-tiered support systems, tiered interventions, and student assistance frameworks to improve overall student academic and behavioral outcomes.",
+    summary: "Multi-tiered support systems, interventions, and student assistance.",
+    tools: [
+      {
+        title: "SMART Goal Generator",
+        category: "Student Support",
+        description: "Helps teachers create intervention-aligned SMART goals based on student data and district expectations.",
+        prompt: "Create a SMART goal for a student in the K–12 setting that is Specific, Measurable, Achievable, Relevant, and Time-bound, ensuring alignment with the student's current academic or behavioral need (provide a concise rationale), their tier of support in an MTSS framework (Tier 1, Tier 2, or Tier 3), and the targeted domain (e.g., literacy, math, social-emotional skills, behavior). Format the output as a SMART Goal Statement (one clear sentence), Criteria for Measurement (bullet points), and Timeline for Achievement (specific date or timeframe). Ensure the goal is asset-based, strengths-oriented, and written in clear, educator-friendly language.",
+        knowledge: ["SMART goal exemplars", "District goal-setting guidance", "MTSS tiered intervention libraries"],
+        fields: ["Perceived need", "Domain (e.g., literacy, behavior)", "Tier of support", "Desired outcome timeframe"]
+      },
+      {
+        title: "MTSS Meeting Agenda Creator",
+        category: "Student Support",
+        description: "Creates a structured agenda for school-based MTSS meetings, including discussion topics, student updates, and decision-making protocols tailored to the tiered support process.",
+        prompt: "Generate a detailed MTSS meeting agenda for a Tier 2/3 team working in a K–12 setting. Include Agenda Sections with recommended time allocations (e.g., welcome, student updates, intervention review, new referrals, action planning), Key Discussion Items for both academic and behavioral supports, Student Update Format (student name/ID, current tier, progress toward goals, next steps), Facilitator Prompts for guiding discussion toward data-driven decisions, and Action Items Section with responsible party and due dates. Present the agenda in a professional, educator-facing format with headings, bullet points, and suggested timing for a 45–60 minute meeting.",
+        knowledge: ["MTSS meeting protocols", "Role-specific responsibilities (e.g., facilitator, recorder)"],
+        fields: ["Meeting type (Tier 2 or Tier 3)", "List of students to discuss", "Meeting duration", "Team member roles", "Notes from previous meetings (optional)"]
+      },
+      {
+        title: "Individualized Behavior Plan Assistant",
+        category: "Student Support",
+        description: "Generates detailed, asset-based behavior intervention plans for students needing additional behavioral support.",
+        prompt: "Draft a student-centered, asset-based behavior intervention plan for a K–12 student, aligned to evidence-based practices and adaptable to most district templates. Structure the plan into the following sections: Student Strengths & Interests (2–3 bullet points), Identified Behavioral Need (clear, non-deficit language), Specific Behavioral Goals (SMART format), Intervention Strategies (tiered supports, positive reinforcement, skill-building activities), Progress Monitoring Plan (data points, frequency, responsible party), and Family/Community Involvement strategies. Ensure all language is strengths-based, avoids stigmatizing terms, and is formatted for ease of integration into a district BIP template.",
+        knowledge: ["District BIP templates", "FBA/BIP frameworks", "PBIS strategies"],
+        fields: ["Target behavior", "Strengths/interests", "Triggers/antecedents", "Current supports in place", "Desired replacement behavior"]
+      },
+      {
+        title: "Student of Concern Form Generator",
+        category: "Student Support",
+        description: "Complete a Student of Concern Form for MTSS documentation",
+        prompt: "Complete the Student of Concern Form for the selected student. Complete each page (all 5 pages) of the form and keep the original structure of the form. Only fill in information you have access to, leave anything you can't answer blank. Consider the following when generating insights and recommendations: Student Overview: Identify any performance trends in academics, behavior, and attendance. Data-Based Problem Solving: Analyze universal, targeted, and intensive data points to determine areas of concern. Layered Continuum of Supports: Recommend tiered interventions (Tier 1, Tier 2, Tier 3) based on data trends. Evidence-Based Practices: Suggest high-quality, research-backed interventions aligned with student needs. Family, School, and Community Partnering: Identify opportunities for collaboration to enhance support structures. Action Plan: Propose a step-by-step intervention plan, including progress monitoring methods and key stakeholders responsible for implementation. Student Data Input (Example Format): Name: [Student Name] Grade Level: [Grade] Academic Data: [Recent assessments, progress monitoring, subject strengths and weaknesses] Behavioral Data: [Office discipline referrals, teacher reports, behavioral observations] Attendance Data: [Absenteeism rate, tardies, patterns] Interventions Tried: [Previous strategies used and their effectiveness] Family/Community Engagement: [Existing partnerships, parental involvement]. For the first page identifying strengths and deficits, please format each strength, deficit, and attempted support as a bullet point under the header. On the last page under 'MTSS Agenda'- for the File Review section, please create a table under that header and populate the data for that student. You will need to populate the current grades and progress for each course that the student is in, as well as assessment data, academic supports currently in place, and teacher comments if available. For the Behavior Attendance section after that, please analyze the student's attendance data and identify any patterns. Also please summarize the student's behavior incident data. For the discussion notes on the last page, please populate details under the headers. For the question 'What barriers might be preventing success?', please analyze the student's data and identify any barriers this student may have in terms of academics, attendance, behavior, etc. For the question 'What specific intervention(s) can we implement or adjust next?', please suggest a research-based intervention strategy based on deficit's in the student's performance, prioritizing the greatest need for the individual student. For the question 'What tier of support is appropriate moving forward?', please recommend Tier 1+, Tier 2, or Tier 3 based on data and response to previous interventions, we want an unbiased recommendation for the student's MTSS tier placement. For the question 'Who is responsible for initiating and monitoring the next step(s)?', please make recommendations for the district team, identifying recommended next steps, and listing the people that should take these next steps, thinking about PLCs, MTSS teams within a school district, and student support teams within a school district. Please format this as a table.",
+        knowledge: ["template student of concern form from your school or district"],
+        fields: ["Relevant data points for concern", "Primary areas for goal-setting"]
+      },
+      {
+        title: "Student-Based Support Team Report Creator",
+        category: "Student Support",
+        description: "Generate a comprehensive student report for SBST meetings that include attendance, behavior, and academic data from Panorama to ensure consistent reporting across all schools.",
+        prompt: "You are an expert educational data analyst helping Student-Based Support Teams (SBSTs) create comprehensive student reports for team meetings. Generate a detailed report using the selected student's Panorama data to support intervention planning and decision-making. Generate actionable insights that help the SBST team make informed decisions about student support and intervention strategies. Report Components Required: 1. Attendance Analysis (Current attendance percentage, Total absences and tardies, Attendance patterns and trends, Comparison to averages). 2. Behavior and Discipline Review (Documented incidents and interventions, Behavioral patterns, Disciplinary actions, Progress on behavioral goals). 3. Academic Performance Summary (Current grades, Assessment results, Academic trends, Areas of strength and concern). 4. Data Trends and Patterns (Connections between attendance, behavior, and academic performance, Timeline of changes, Seasonal patterns). 5. Key Findings and Recommendations (Summary of concerns, Areas needing immediate support, Strengths to build upon). Formatting Requirements: Structure the report professionally for easy review during SBST meetings. Use clear headings, highlight critical information, and include data summaries that inform intervention decisions. Maintain a professional tone appropriate for educational team discussions.",
+        knowledge: ["SBST Report Template", "District intervention benchmarks"],
+        fields: ["Reporting period", "Specific SBST Focus Area"]
+      }
+    ]
+  },
+  attendance: {
+    id: 'attendance',
+    title: "Attendance Tools",
+    shortTitle: "Attendance Tools",
+    icon: <Calendar style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    accent: SECONDARY_LIME,
+    description: "Tracking, analyzing, and improving student attendance patterns.",
+    summary: "Tracking, analyzing, and improving student attendance patterns.",
+    tools: [
+      {
+        title: "Attendance Contract Generator",
+        category: "Student Support",
+        description: "Drafts personalized attendance improvement contracts that outline shared expectations, goals, and supports between the student, family, and school.",
+        prompt: "Generate a student-centered attendance contract for a K–12 student that is collaborative, supportive, and solution-oriented. Structure the contract to include student information (name, grade, date), attendance expectations (clear, measurable targets), support strategies (school-based supports, family involvement, community resources), shared commitments (student, family, and school responsibilities), and review and check-in dates. Ensure the language is positive, encouraging, and non-punitive, emphasizing partnership and shared goals. Format for easy printing and signing.",
+        knowledge: ["District attendance contract templates", "Tiered intervention guidance", "Family–school partnership best practices"],
+        fields: ["Identified barriers", "Family engagement preferences", "Suggested support strategies", "Contract timeframe"]
+      },
+      {
+        title: "Attendance Data Summary Tool",
+        category: "Student Support",
+        description: "Summarizes patterns in attendance data for individual students, homerooms, or grade levels, highlighting trends and risk areas.",
+        prompt: "Summarize attendance trends and risk factors for a specified K–12 student or student group over a defined time period (for example, last 30 days, semester, or school year). Include overall attendance rate (percentage, number of days present/absent), patterns and trends (such as chronic absenteeism, frequent late arrivals, seasonal dips), identified risk factors (academic, behavioral, health, transportation, engagement), equity considerations (contextual or systemic factors impacting attendance), and actionable next steps for intervention and support. Present the summary in a clear, educator-friendly table or bullet format with key takeaways highlighted.",
+        knowledge: ["Local definitions for risk (e.g., early warning indicators)"],
+        fields: ["Time period"]
+      },
+      {
+        title: "Attendance Celebration Note Creator",
+        category: "Student Engagement",
+        description: "Automatically generates positive notes or certificates for students with strong or improving attendance to support a strengths-based approach.",
+        prompt: "Create a personalized celebration note recognizing a K–12 student's attendance improvement over a defined period (for example, last month, quarter, or semester). Use a warm, encouraging tone that reflects the student's grade level. Reference specific progress (such as days attended or improvement percentage), include a positive message of encouragement for continued success, and end with a personal sign-off (such as teacher name, principal, or attendance team). Format in short paragraph form suitable for printing or sending digitally.",
+        knowledge: ["School values", "Recognition messaging exemplars"],
+        fields: ["Attendance progress or milestone", "Preferred tone"]
+      },
+      {
+        title: "School Based Attendance Team Meeting Prep",
+        category: "Student Support",
+        description: "Prepares a one-pager summary for weekly attendance team meetings, including student updates, action items, and discussion prompts.",
+        prompt: "Create a school-based attendance team meeting prep sheet for a K–12 setting that summarizes student attendance concerns and proposed action steps. Include a student information table (name, grade, current attendance rate, tier of support), key concerns (data-based patterns such as chronic absenteeism, tardiness trends, or extended absences), possible contributing factors (academic, behavioral, health, family, transportation), current interventions in place, and recommended next steps with assigned responsible parties and timelines. Ensure all language is neutral, supportive, and solutions-focused, avoiding deficit framing. Format for easy printing and use during meetings.",
+        knowledge: ["Attendance team meeting structure", "Sample agenda"],
+        fields: ["Meeting date", "Students of concern", "Notes from prior meeting"]
+      }
+    ]
+  },
+  instruction: {
+    id: 'instruction',
+    title: "Instruction and Curriculum Tools",
+    shortTitle: "Curriculum Tools",
+    icon: <BookOpen style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    accent: SECONDARY_TEAL,
+    description: "Lesson planning, curriculum development, and instructional strategies.",
+    summary: "Lesson planning, curriculum development, and instructional strategies.",
+    tools: [
+      {
+        title: "Lesson Re-Teach Plan Generator",
+        category: "Instructional Planning",
+        description: "Supports teachers in creating re-teach plans for students who struggled with specific concepts.",
+        prompt: "Design a re-teach plan for a K–12 lesson targeting students who have not yet mastered a specific concept. Include the learning objective, summary of the original lesson, evidence of gaps in understanding, instructional adjustments for re-teaching, scaffolded activities, differentiation strategies for varied readiness levels, and formative assessment methods to measure progress. Ensure the tone is strengths-based and focused on growth, and format the plan so it can be easily implemented by a classroom teacher.",
+        knowledge: ["State/district standards", "Curriculum scope and sequence", "Data interpretation best practices"],
+        fields: ["Concept/standard needing re-teach", "Common errors or misconceptions", "Group size", "Instructional format (e.g., small group, station)", "Available instructional time"]
+      },
+      {
+        title: "Rubric Generator",
+        category: "Instructional Planning",
+        description: "Builds grading rubrics aligned to standards, success criteria, and assignment goals. Teachers can specify performance levels and descriptors.",
+        prompt: "Generate a detailed rubric for a K–12 assignment, fully aligned to the provided learning standard and assignment description. Include four performance levels with clear, observable descriptors for each criterion. Ensure the criteria reflect the essential skills and knowledge from the standard and are written in student-friendly language. Format the rubric in a table with performance levels across the top and criteria down the side, ensuring descriptors are objective, equitable, and measurable.",
+        knowledge: ["Standards-aligned rubric examples", "District grading policies"],
+        fields: ["Assignment description", "Number of points", "Learning objectives", "Performance levels", "Success criteria"]
+      },
+      {
+        title: "UDL Strategy Generator",
+        category: "Instructional Planning",
+        description: "Suggests UDL-aligned strategies to help teachers differentiate lessons based on student needs, accessibility, and engagement considerations.",
+        prompt: "Recommend Universal Design for Learning strategies for a specific K–12 lesson, ensuring support for students with varied strengths, needs, and learning preferences. Provide strategies across all three UDL principles: multiple means of representation, multiple means of engagement, and multiple means of action and expression. Align each strategy to the lesson objective and include examples of how it could be implemented in practice. Ensure recommendations are inclusive, asset-based, and adaptable to general education classrooms.",
+        knowledge: ["UDL framework"],
+        fields: ["Lesson goal or activity", "Known learner needs", "Preferred modalities (e.g., visual, auditory)", "Materials available"]
+      },
+      {
+        title: "DOK Questions",
+        category: "Instructional Planning",
+        description: "Analyzes any uploaded reading passages or articles and instantly crafts Depth of Knowledge (DOK) questions to spark rigorous student thinking. Upload a reading passage or article.",
+        prompt: "Analyze any uploaded documents and generate depth of knowledge questions for an educator to use with their students. The goal is to help educators create cognitively engaging and standards-aligned questions that reflect all four levels of the DOK framework: DOK 1 (recall and reproduction); DOK 2 (skill/concept application); DOK 3 (strategic thinking and reasoning), and; DOK 4 (extended thinking). For every question, list: (a) the question itself (stand‑alone, grade‑appropriate), (b) the target cognitive skill, and (c) a suggested response type (e.g., multiple choice, short answer, essay, project). Make questions tightly aligned to the document, use age‑appropriate language, and avoid copying text verbatim unless essential for clarity.",
+        knowledge: ["Reading passages", "Articles", "DOK Framework Guide"],
+        fields: ["Target Grade Level", "Subject Area"]
+      },
+      {
+        title: "Text Re-Leveler",
+        category: "Instructional Planning",
+        description: "Adapts grade-level texts to increase accessibility through vocabulary support, strategic scaffolds, and chunking while preserving core meaning and academic rigor.",
+        prompt: "You are an expert Literacy Specialist and Instructional Designer. Your mission is to adapt complex grade-level texts to make them more accessible for diverse learners without compromising academic rigor or core meaning. Analyze the provided text and provide: 1. A simplified version of the text that maintains high-level concepts and academic vocabulary; 2. Strategic scaffolds such as context clues or student-friendly definitions for difficult terms; 3. Logical 'chunks' with guiding questions for each section to support active comprehension. Ensure the tone is academic yet accessible, focusing on removing barriers to understanding while preserving the text's original purpose and rigor.",
+        knowledge: ["Lexile/Grade-level frameworks", "Vocabulary tier guides", "Scaffolding exemplars"],
+        fields: ["Target Grade Level", "Focus Vocabulary to Retain", "Chunking Preference"]
+      }
+    ]
+  },
+  career: {
+    id: 'career',
+    title: "College and Career Readiness Tools",
+    shortTitle: "CCR Tools",
+    icon: <GraduationCap style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    color: "amber",
+    accent: SECONDARY_LIME,
+    description: "Preparing students for post-secondary success and career planning.",
+    summary: "Preparing students for post-secondary success and career planning.",
+    tools: [
+      {
+        title: "Career Pathway Exploration Tool",
+        category: "Student Engagement",
+        description: "Matches students with potential career pathways based on their interests, strengths, and academic profiles.",
+        prompt: "Recommend career pathways for a K–12 student based on their documented interests and academic strengths. Align recommendations to a recognized career cluster framework such as the 16 Career Clusters or state equivalents. Include a brief rationale for each suggested pathway, potential related occupations, and examples of postsecondary programs or certifications. Ensure recommendations are inclusive, reflect diverse opportunities, and avoid assumptions based on demographic factors.",
+        knowledge: ["Career interest inventories", "State career clusters/pathways"],
+        fields: ["Student interests", "Strengths/skills", "Preferred working style", "Post-grad goals"]
+      },
+      {
+        title: "College and Postsecondary Exploration Generator",
+        category: "Student Engagement",
+        description: "Provides a tailored list of postsecondary institutions (2-year, 4-year, trade schools) based on student profiles and preferences.",
+        prompt: "Create a list of best-fit colleges or postsecondary options for a K–12 student, considering their academic profile, career interests, preferred geographic location, learning environment preferences (for example, campus size, urban/rural setting), and financial considerations. Include a brief description for each option highlighting relevant programs, admissions selectivity, and unique supports or opportunities. Ensure recommendations include a diverse range of accessible options that align with the student's goals and circumstances.",
+        knowledge: ["College match criteria (selectivity, affordability, etc.)", "FAFSA/financial aid info"],
+        fields: ["Location preferences", "Career interests", "Financial aid need", "School type preferences"]
+      },
+      {
+        title: "Letter of Recommendation Generator",
+        category: "Student Engagement",
+        description: "Drafts personalized letters of recommendation for students applying to college, internships, or scholarships, based on educator inputs and district formatting preferences.",
+        prompt: "Write a formal letter of recommendation for a K–12 student applying to college or a postsecondary program. Highlight the student's academic achievements, personal strengths, leadership or community involvement, and unique contributions. Include specific anecdotes or examples that illustrate these qualities. Maintain a professional, positive, and authentic tone aligned with college admissions expectations. Conclude with a strong endorsement and a formal sign-off including recommender's name, title, and contact information. Avoid comparative language that may disadvantage other students.",
+        knowledge: ["Exemplars of effective recommendation letters", "District/school formatting guidance"],
+        fields: ["Relationship to recommender", "Academic and personal strengths", "Key accomplishments", "Target program or college", "Tone preference"]
+      },
+      {
+        title: "PoG Improvement Plan",
+        category: "Student Support",
+        description: "This tool creates a 12-week improvement plan to help support these skills with actionable interventions and tracking to help students meet their goals and highest potential.",
+        prompt: "You are a Portrait of a Graduate (PoG) Success Coach. Your mission is to create a detailed 12-week improvement plan for a student focused on core PoG competencies. Analyze the student's current skill levels and strengths to identify specific growth opportunities. Develop a structured 12-week roadmap that includes actionable interventions, weekly tracking mechanisms, and milestone checks. Ensure all recommendations are supportive, asset-based, and designed to help the student reach their highest potential in both academic and social-emotional domains.",
+        knowledge: ["Portrait of a Graduate competencies", "Intervention strategies guide", "Progress tracking templates"],
+        fields: ["Target Competency (e.g., Communication)", "Current Performance Baseline", "Student Long-Term Vision"]
+      },
+      {
+        title: "CTE Meeting Agenda Planner",
+        category: "Instructional Planning",
+        description: "Generate personalized meeting agendas for school counselors to support students with course selection and CTE pathway planning.",
+        prompt: "You are a Career and Technical Education (CTE) Pathway Specialist. Your goal is to generate a personalized meeting agenda for school counselors to use during student planning sessions. Based on student career interests and academic history, generate a structured agenda that covers: 1. Review of current pathway progress; 2. Alignment with industry-recognized certifications; 3. Course selection for the upcoming semester, and; 4. Discussion of work-based learning or internship opportunities. Provide talking points that help the counselor facilitate an informed and supportive conversation about the student's future.",
+        knowledge: ["CTE Pathway course sequences", "Industry certification requirements", "Counseling conversation protocols"],
+        fields: ["Student Career Interests", "Completed CTE Credits", "Target Industry Certification"]
+      }
+    ]
+  },
+  family: {
+    id: 'family',
+    title: "Family Engagement Tools",
+    shortTitle: "Family Engagement",
+    icon: <Heart style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    color: "rose",
+    accent: SECONDARY_LAVENDER,
+    description: "Building stronger connections between families, students, and schools.",
+    summary: "Building stronger connections between families, students, and schools.",
+    tools: [
+      {
+        title: "Parent/Teacher Conference Prep Tool",
+        category: "Family Engagement",
+        description: "Summarizes strengths, growth areas, and family engagement tips for each student to prepare educators for effective and positive conferences.",
+        prompt: "Generate a parent-teacher conference preparation sheet for a K–12 student that includes strengths, areas for growth, and family-facing talking points. Use clear, jargon-free language that is positive, asset-based, and easy for families to understand. Organize the sheet into sections for student strengths, current concerns (with supportive framing), progress toward goals, and suggested next steps. Include prompts or questions to encourage family input and collaboration.",
+        knowledge: ["Family communication best practices", "Sample agenda"],
+        fields: ["Conference length", "Strengths/interests", "Family communication preferences"]
+      },
+      {
+        title: "Family Update Generator",
+        category: "Family Engagement",
+        description: "Drafts regular, personalized updates to families about student progress, upcoming events, or ways to support learning at home.",
+        prompt: "Create a biweekly family update for a K–12 student that summarizes academic progress, strengths, and next steps for learning. Use clear, friendly, and strengths-focused language that avoids educational jargon. Organize the update into short sections: recent highlights, current learning focus, next steps, and how families can support at home. Keep the tone encouraging and collaborative.",
+        knowledge: ["Examples of family newsletters/messages", "Upcoming important dates", "Suggested home activities"],
+        fields: ["Student progress highlights", "Areas for growth", "Home support suggestions", "Upcoming events or deadlines"]
+      },
+      {
+        title: "Family Event Invitation Writer",
+        category: "Family Engagement",
+        description: "Drafts inclusive, multilingual invitations to upcoming school events, including why the event matters and how families can participate.",
+        prompt: "Write an invitation for a K–12 school family event that encourages attendance and active participation. Include the event name, date, time, location, and a brief description of the purpose and activities. Use warm, inclusive, and welcoming language that conveys the value of attending for both students and families. If applicable, include details about childcare, translation, or transportation supports. End with a clear call to action to RSVP or attend.",
+        knowledge: ["Event communication templates", "Community partnership tips"],
+        fields: ["Event details (who, what, when, where)", "Audience", "Purpose", "RSVP or sign-up info"]
+      }
+    ]
+  },
+  assessment: {
+    id: 'assessment',
+    title: "Professional Learning and Staff Support Tools",
+    shortTitle: "PL and Staff Support",
+    icon: <Brain style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    color: "cyan",
+    accent: SECONDARY_TURQUOISE,
+    description: "Educator development, training, and professional growth support.",
+    summary: "Educator development, training, and professional growth support.",
+    tools: [
+      {
+        title: "PD Session Designer",
+        category: "Instructional Planning",
+        description: "Helps coaches or administrators quickly create agendas and slide outlines for professional development sessions aligned to adult learning principles.",
+        prompt: "Design a detailed 60-minute professional development session agenda for educators on formative assessment strategies. Include session objectives, a minute-by-minute agenda, interactive activities, examples of assessment tools, and discussion prompts. Ensure the agenda balances research-based content with practical classroom applications and includes opportunities for participant reflection and collaboration.",
+        knowledge: ["District Adult Learning Theory", "Common PD Format", "District Priorities"],
+        fields: ["Topic", "Audience", "Length", "Desired Outcomes"]
+      },
+      {
+        title: "Teacher Goal Reflection Tool",
+        category: "Instructional Planning",
+        description: "Supports educators in reflecting on progress toward individual or schoolwide professional goals with prompts and synthesis language.",
+        prompt: "Write a reflection summary on a teacher's progress toward their professional goal within a given timeframe. Include evidence of progress, strengths observed, challenges encountered, and next steps. Maintain a constructive, strengths-based tone that supports professional growth and aligns with coaching or evaluation frameworks.",
+        knowledge: ["Teacher evaluation rubrics", "Common growth goal structures"],
+        fields: ["Goal statement", "Progress notes", "Artifacts or examples", "Timeframe"]
+      },
+      {
+        title: "Coaching Cycle Summary Generator",
+        category: "Instructional Planning",
+        description: "Drafts a summary of an instructional coaching conversation or cycle to share with teachers or store in a tracker.",
+        prompt: "Summarize the focus, actions, and next steps from an instructional coaching cycle. Include the coaching goal, specific strategies implemented, evidence of progress, and agreed-upon next steps. Ensure the summary is concise, actionable, and written in a professional, strengths-based tone suitable for sharing with both the teacher and coaching supervisor.",
+        knowledge: ["Instructional coaching models (e.g., Impact Cycle)", "Feedback language norms"],
+        fields: ["Focus area", "Observed strengths", "Agreed next steps", "Coaching frequency"]
+      }
+    ]
+  },
+  planning: {
+    id: 'planning',
+    title: "School and District Planning Tools",
+    shortTitle: "District Planning",
+    icon: <School style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    color: "slate",
+    accent: SECONDARY_TEAL,
+    description: "Efficiently develop, align, and document strategic and compliance plans.",
+    summary: "Efficiently develop, align, and document strategic and compliance plans.",
+    tools: [
+      {
+        title: "School Improvement Plan (SIP) Builder",
+        category: "Instructional Planning",
+        description: "Supports administrators in generating SIPs based on key school data, equity goals, and district frameworks.",
+        prompt: "Create a draft school improvement plan for a K–12 school that includes a school profile, needs assessment summary (based on provided or assumed data), priority goals, evidence-based strategies, action steps, progress monitoring methods, and alignment to district and state priorities. Ensure the plan uses clear, professional language, incorporates equity-focused strategies, and is structured for presentation to school leadership and stakeholders.",
+        knowledge: ["SIP templates", "State requirements", "District strategic goals"],
+        fields: ["Priority areas", "Stakeholder input", "Timeline"]
+      },
+      {
+        title: "Strategic Planning Snapshot Generator",
+        category: "Instructional Planning",
+        description: "Creates a one-pager that synthesizes districtwide data and priorities for planning retreats or leadership meetings.",
+        prompt: "Generate a strategic planning snapshot for a K–12 district that summarizes key performance data, progress toward existing goals, and priority areas for improvement. Include a brief overview of student achievement, equity indicators, attendance, graduation rates, and other relevant metrics. Conclude with clearly stated strategic priorities and next steps aligned to the district's mission and vision.",
+        knowledge: ["District vision statements"],
+        fields: ["Audience (e.g., board, staff)", "Key priorities"]
+      },
+      {
+        title: "Grant Narrative Starter Tool",
+        category: "Instructional Planning",
+        description: "Generates draft narratives for common grant applications, aligned to district initiatives, student needs, and evidence-based practices.",
+        prompt: "Draft a persuasive grant narrative for a K–12 funding proposal that includes a clear description of the identified need (supported by relevant data), the proposed strategy or intervention, expected measurable outcomes, and explicit alignment to district goals and priorities. Use compelling, strengths-based language that emphasizes equity, community impact, and sustainability.",
+        knowledge: ["Common grant structures and language"],
+        fields: ["Project description", "Target student population", "Needs statement", "Planned activities", "Desired outcomes"]
+      }
+    ]
+  },
+  specialed: {
+    id: 'specialed',
+    title: "Special Education and 504 Planning Tools",
+    shortTitle: "SPED Tools",
+    icon: <Target style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    color: "purple",
+    accent: SECONDARY_LAVENDER,
+    description: "Documentation, goal setting, and personalized support for students with diverse needs.",
+    summary: "Documentation, goal setting, and personalized support for students with diverse needs.",
+    tools: [
+      {
+        title: "IEP Goal Writer",
+        category: "Student Support",
+        description: "Generates clear, standards-aligned, and measurable IEP goals in academic, behavioral, or functional domains based on student needs and present levels.",
+        prompt: "Generate a measurable, standards-aligned IEP goal for a K–12 student based on their current performance and identified area of need. Use SMART goal formatting, align the goal to the appropriate state or national standard, and include a brief rationale. Specify the criteria for mastery, method of measurement, and timeframe for achievement. Ensure the language is asset-based, clear, and educator-friendly.",
+        knowledge: ["SMART goal frameworks", "State standards (e.g., Common Core)", "IEP compliance guidance"],
+        fields: ["Area of focus (e.g., reading comprehension, behavior)", "Timeframe", "Desired outcome"]
+      },
+      {
+        title: "FBA Assistant",
+        category: "Student Support",
+        description: "Guides educators through analyzing behavior data to identify patterns, hypothesize root causes, and draft clear, function-based statements to inform targeted intervention planning.",
+        prompt: "You are a specialized Behavior Analyst. Analyze student behavioral data to identify patterns and determine hypothesized root causes. Draft clear, function-based summary statements that identify the purpose of the behavior (Escape, Attention, Tangible, or Sensory) and provide a professional hypothesis to inform targeted intervention planning.",
+        knowledge: ["Behavior observation logs", "ABC data sheets", "Previous behavior assessments"],
+        fields: ["Specific target behavior", "Observed triggers", "Perceived function"]
+      },
+      {
+        title: "Behavior Intervention Plan (BIP) Draft Generator",
+        category: "Student Support",
+        description: "Creates structured, function-aligned behavior intervention plans with proactive supports, replacement behaviors, and progress-monitoring strategies tailored to student needs.",
+        prompt: "You are an expert Behavior Specialist. Generate a structured Behavior Intervention Plan (BIP) that aligns specifically with a student's behavioral function. Include proactive classroom supports, specific instructions for teaching and modeling replacement behaviors, and clear strategies for data-driven progress monitoring.",
+        knowledge: ["Completed FBA", "District BIP Template", "PBIS Strategy Guide"],
+        fields: ["Hypothesized behavior function", "Targeted replacement behavior", "Key rewards or motivators"]
+      },
+      {
+        title: "Parent SPED Summary",
+        category: "Student Support",
+        description: "Translates evaluation results, service plans, and progress data into clear, family-friendly summaries that promote understanding and meaningful collaboration.",
+        prompt: "You are a Special Education Liaison. Translate complex student evaluation results, IEP service plans, and progress data into clear, family-friendly language. Focus on student strengths and making technical findings accessible to parents to promote meaningful understanding and collaborative school-home partnership.",
+        knowledge: ["Evaluation reports (ER/RR)", "Current IEP", "Progress reporting templates"],
+        fields: ["Primary evaluation findings", "Key service areas", "Focus for home-school partnership"]
+      },
+      {
+        title: "IEP at a Glance Generator",
+        category: "Student Support",
+        description: "Generates a concise, educator-friendly summary of a student’s IEP, including key accommodations, goals, services, and supports—layered with Panorama data for instructional context. Select a student and upload their IEP or related documents. Educators should thoroughly review and use professional judgement before implementing.",
+        prompt: "Generate an IEP at a Glance summary for a K–12 student that provides a teacher with a quick reference to the student's key supports and goals. Include sections for student information, primary eligibility, current performance summary, annual goals, accommodations and modifications, and any relevant support services. Keep the summary concise, clear, and focused on actionable information for classroom implementation.",
+        knowledge: ["Example Template"],
+        fields: ["Student name", "Key accommodations", "Primary goals", "Support strategies"]
+      }
+    ]
+  },
+  datatools: {
+    id: 'datatools',
+    title: "Assessment and Data Tools",
+    shortTitle: "Assessment Tools",
+    icon: <BarChart style={{ color: PANO_GREEN }} className="w-5 h-5" />,
+    color: "indigo",
+    accent: SECONDARY_TURQUOISE,
+    description: "Leverage tools for creating assessments, analyzing complex performance data, and generating actionable feedback to drive informed instructional decisions.",
+    summary: "Leverage tools for creating assessments, analyzing complex performance data, and generating actionable feedback.",
+    tools: [
+      {
+        title: "Assessment Data Analyzer",
+        category: "Instructional Planning",
+        description: "Analyzes assessment results to identify learning gaps, student groupings, and intervention recommendations based on performance patterns.",
+        prompt: "Analyze assessment data for a K–12 class to identify learning gaps, suggest flexible student groupings, and recommend targeted interventions. Organize the analysis into three sections: learning gaps by standard or skill, suggested groupings with rationale, and recommended instructional strategies or interventions. Ensure recommendations are equitable, strengths-based, and aligned to standards and learning objectives.",
+        knowledge: ["District assessment frameworks", "Standards alignment guides", "Intervention tier criteria"],
+        fields: ["Assessment type", "Grade level/subject", "Performance benchmarks", "Grouping preferences"]
+      },
+      {
+        title: "Data Dashboard Summary Creator",
+        category: "Instructional Planning",
+        description: "Creates executive summaries of key performance indicators and trends from district or school data dashboards for leadership meetings.",
+        prompt: "Generate an executive summary of key performance trends from a K–12 district or school data dashboard. Include notable achievements, areas of concern, and significant changes over time. Organize the summary into sections for academic performance, attendance, behavior, and equity indicators, followed by 2–3 actionable recommendations for leadership consideration. Use concise, professional language suitable for leadership meetings.",
+        knowledge: ["District KPIs and metrics", "Benchmark comparisons", "Historical trend data"],
+        fields: ["Time period", "Audience level", "Priority metrics", "Comparison groups"]
+      },
+      {
+        title: "Student Progress Report Generator",
+        category: "Family Engagement",
+        description: "Compiles individual student progress reports that synthesize multiple data points into family-friendly summaries with next steps.",
+        prompt: "Create a comprehensive student progress report that combines academic, behavioral, and attendance data into a family-friendly summary. Organize the report into sections: student strengths, recent progress, areas for growth, and next steps for support. Use clear, jargon-free, and encouraging language that promotes collaboration between school and family.",
+        knowledge: ["Report card templates", "Family communication guidelines", "Growth measurement standards"],
+        fields: ["Reporting period", "Data sources to include", "Student strengths", "Family communication preferences"]
+      },
+      {
+        title: "Benchmark Assessment Prep Tool",
+        category: "Instructional Planning",
+        description: "Helps teachers prepare students for upcoming assessments by identifying focus areas and creating review materials based on prior performance.",
+        prompt: "Design a targeted review plan for an upcoming K–12 benchmark assessment based on prior performance patterns and learning objectives. Include prioritized content areas, suggested review activities, time allocations, and differentiation strategies to support varied student readiness levels. Ensure the plan is strengths-based, engaging, and aligned to the assessment format.",
+        knowledge: ["Assessment blueprints", "Standards coverage maps", "Review strategy best practices"],
+        fields: ["Assessment date", "Subject/grade level", "Previous performance data", "Available prep time", "Student needs"]
+      }
+    ]
+  }
+};
+
+// --- SUB-COMPONENTS ---
+
+function TooltipModal({ isOpen, onClose, title, content }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative animate-in zoom-in-95 duration-200">
+        <button 
+          onClick={onClose} 
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-slate-100 rounded-lg" style={{ color: PANO_NAVY }}>
+            <Lightbulb className="w-5 h-5" />
+          </div>
+          <h3 className="text-xl font-bold" style={{ color: PANO_NAVY }}>{String(title)}</h3>
+        </div>
+        <div className="leading-relaxed text-sm md:text-base text-slate-600">
+          {String(content)}
+        </div>
+        <button 
+          onClick={onClose}
+          className="mt-6 w-full py-2 text-white rounded-xl font-semibold transition-colors"
+          style={{ backgroundColor: PANO_NAVY }}
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function OnboardingModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-sm w-full p-8 relative animate-in zoom-in-95 duration-200 text-center">
+        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Wand2 className="w-8 h-8" />
+        </div>
+        <h3 className="text-xl font-bold mb-3 text-slate-900">Welcome to Tool Assistant</h3>
+        <p className="text-sm text-slate-600 leading-relaxed mb-6">
+          This workspace helps you generate new tool ideas. Just describe a classroom task or challenge and AI will draft a tool for you.
+        </p>
+        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-8">
+          <p className="text-xs text-amber-800 font-medium leading-relaxed text-left">
+            Note: Your tool history exists only for this current session. You can use the Export feature to download your tool drafts before you leave.
+          </p>
+        </div>
+        <button 
+          onClick={onClose}
+          className="w-full py-3 text-white rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-900/20"
+          style={{ backgroundColor: PANO_NAVY }}
+        >
+          Let's get started
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ToolCard({ tool, categoryId, index, onCopy, onInfoClick, accentColor, initiallyExpanded = false }) {
+  const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
+  const [copyFeedback, setCopyFeedback] = useState(null);
+
+  const triggerCopy = (text, id) => {
+    onCopy(String(text), id);
+    setCopyFeedback(id);
+    setTimeout(() => setCopyFeedback(null), 2000);
+  };
+
+  const toolId = `${categoryId}-${index}`;
+  const fields = tool.fields || (tool.recommendedFields ? tool.recommendedFields.map(f => f.fieldName || f) : []);
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm transition-all duration-300">
+      <div 
+        className="p-6 md:p-8 cursor-pointer hover:bg-slate-50 transition-colors flex flex-col justify-between items-start gap-4"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="w-full">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 group/title">
+              <h3 className="text-2xl font-bold transition-colors" style={{ color: PANO_NAVY }}>
+                {String(tool.title)}
+              </h3>
+              {isExpanded && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); triggerCopy(tool.title, `${toolId}-title`); }}
+                  className="p-1.5 rounded-md hover:bg-slate-100 transition-colors"
+                >
+                  {copyFeedback === `${toolId}-title` ? <Check className="w-4 h-4 text-emerald-500" /> : <span className="text-lg leading-none opacity-40 group-hover/title:opacity-100 transition-opacity">📋</span>}
+                </button>
+              )}
+            </div>
+            <ChevronDown className={`w-6 h-6 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+          </div>
+          
+          <div className="flex items-start gap-3 group/desc">
+            <div className="text-base leading-relaxed max-w-2xl text-slate-600">
+              {String(tool.description)}
+            </div>
+            {isExpanded && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); triggerCopy(tool.description, `${toolId}-desc`); }}
+                className="p-1.5 rounded-md hover:bg-slate-100 transition-colors flex-shrink-0"
+              >
+                {copyFeedback === `${toolId}-desc` ? <Check className="w-4 h-4 text-emerald-500" /> : <span className="text-lg leading-none opacity-40 group-hover/desc:opacity-100 transition-opacity">📋</span>}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="p-6 md:p-8 border-t border-slate-100 bg-white grid grid-cols-1 xl:grid-cols-2 gap-10 animate-in slide-in-from-top-2 duration-300">
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest" style={{ color: PANO_NAVY }}>
+                  <FileText className="w-3.5 h-3.5" style={{ color: PANO_GREEN }} />
+                  Tool Instructions
+                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); triggerCopy(tool.prompt || tool.instructions, `${toolId}-instructions`); }}
+                  className={`whitespace-nowrap px-4 py-1.5 rounded font-bold flex items-center gap-2 transition-all active:scale-95 text-[10px] uppercase tracking-wider ${copyFeedback === `${toolId}-instructions` ? 'text-white' : 'text-white hover:opacity-90'}`}
+                  style={{ backgroundColor: copyFeedback === `${toolId}-instructions` ? PANO_GREEN : PANO_BLUE }}
+                >
+                  {copyFeedback === `${toolId}-instructions` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {copyFeedback === `${toolId}-instructions` ? 'Copied!' : 'Copy Instructions'}
+                </button>
+              </div>
+              <div className="p-6 rounded border border-slate-100 leading-relaxed italic text-sm border-l-4 text-slate-700 whitespace-pre-wrap" style={{ backgroundColor: LIGHT_GRAY, borderLeftColor: PANO_GREEN }}>
+                "{String(tool.prompt || tool.instructions)}"
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest" style={{ color: PANO_NAVY }}>
+                  <Tag className="w-3.5 h-3.5" style={{ color: PANO_GREEN }} />
+                  Tool Category
+                </div>
+                <div className="inline-flex items-center px-3 py-1 rounded text-xs font-bold shadow-sm" style={{ backgroundColor: PANO_NAVY, color: 'white' }}>
+                  {String(tool.category)}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest" style={{ color: PANO_NAVY }}>
+                  <BookOpen className="w-3.5 h-3.5" style={{ color: PANO_GREEN }} />
+                  Recommended Files to Upload
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onInfoClick({ title: 'What is "Knowledge" in Solara?', content: 'You can (optionally) upload files or documents to give a custom tool more context and tailor it specifically to your district\'s needs.' }); }}
+                    className="ml-1 opacity-50 hover:opacity-100"
+                  >
+                    <Info className="w-3 h-3" />
+                  </button>
+                </div>
+                <ul className="space-y-3">
+                  {(tool.knowledge || ["Reflected in prompt logic"]).map((k, kIdx) => (
+                    <li key={kIdx} className="flex items-start gap-2 text-xs text-slate-600">
+                      <div className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: PANO_GREEN }} />
+                      {String(k)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest" style={{ color: PANO_GREEN }}>
+                <TrendingUp className="w-3.5 h-3.5" style={{ color: PANO_GREEN }} />
+                Recommended Text Fields
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onInfoClick({ title: "Text Fields in Custom Tools", content: "You can add additional text fields to a custom tool. This optional feature allows you to prompt educators to input more information as context up-front." }); }}
+                  className="ml-1 opacity-50 hover:opacity-100"
+                >
+                  <Info className="w-3 h-3" />
+                </button>
+              </div>
+              <ul className="space-y-3">
+                {fields.map((f, fIdx) => {
+                  const fieldCopyId = `${toolId}-field-${fIdx}`;
+                  const fieldVal = String(f);
+                  return (
+                    <li key={fIdx} className="flex items-start justify-between group/field gap-2 text-xs text-slate-600">
+                      <div className="flex items-start gap-2">
+                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: accentColor || PANO_GREEN }} />
+                        <span>{fieldVal}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); triggerCopy(fieldVal, fieldCopyId); }} className="p-1 rounded-md hover:bg-slate-100 transition-colors flex-shrink-0">
+                        {copyFeedback === fieldCopyId ? <Check className="w-3 h-3 text-emerald-500" /> : <span className="text-xs leading-none opacity-40 group-hover/field:opacity-100 transition-opacity">📋</span>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ToolBuilderView({ onCopy, onInfoClick, onToolGenerated, drafts, onExport }) {
+  const [userInput, setUserInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleGenerate = async () => {
+    if (!userInput.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const toolData = await callGemini(userInput);
+      setResult(toolData);
+      onToolGenerated(toolData); // Auto-save to drafts
+    } catch (err) {
+      setError(err.message || "I encountered an error while drafting your tool. Please try again or rephrase your request.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="max-w-3xl">
+          <h2 className="text-4xl font-bold mb-4" style={{ color: PANO_NAVY }}>Solara Tool Builder Assistant</h2>
+          <p className="text-lg text-slate-600 leading-relaxed">
+            Describe a classroom challenge or recurring task you would like to streamline. AI will analyze proven exemplar prompt structures and generate clear, concise tool instructions that you can refine, test, and publish.
+          </p>
+        </div>
+        {drafts.length > 0 && (
+          <button 
+            onClick={onExport}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm font-bold text-slate-600"
+          >
+            <Download className="w-4 h-4" />
+            Export History
+          </button>
+        )}
+      </div>
+
+      <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Describe your tool need</label>
+          <textarea 
+            className="w-full h-40 bg-slate-50 border border-slate-200 rounded-xl p-6 text-base focus:ring-2 focus:ring-emerald-500 outline-none transition-all placeholder:text-slate-300"
+            placeholder="e.g., I need a tool that helps me draft supportive but direct emails to families whose students are missing more than two homework assignments per week..."
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+          />
+        </div>
+        
+        <button 
+          onClick={handleGenerate}
+          disabled={loading || !userInput.trim()}
+          className="w-full py-4 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md"
+          style={{ backgroundColor: PANO_NAVY }}
+        >
+          {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6 text-amber-400" />}
+          {loading ? 'Drafting Specifications...' : 'Draft My Tool ✨'}
+        </button>
+
+        {error && <div className="p-4 bg-rose-50 text-rose-600 rounded-xl text-sm font-medium border border-rose-100">{error}</div>}
+      </div>
+
+      {result && (
+        <div className="space-y-10 animate-in fade-in slide-in-from-top-6 duration-500">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-6 h-6 text-amber-500" />
+            <h3 className="text-2xl font-bold" style={{ color: PANO_NAVY }}>Generated Specifications</h3>
+          </div>
+          
+          <ToolCard 
+            tool={result} 
+            categoryId="ai-drafted" 
+            index={0} 
+            onCopy={onCopy} 
+            onInfoClick={onInfoClick} 
+            accentColor={SECONDARY_TEAL}
+            initiallyExpanded={true}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- MAIN APP ---
+
+const App = () => {
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [activeView, setActiveView] = useState('home'); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [modalContent, setModalContent] = useState(null);
+  const [drafts, setDrafts] = useState([]);
+  const [selectedDraftIndex, setSelectedDraftIndex] = useState(null);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+
+  // Layout-driven order for homepage tiles and sidebar navigation
+  const categoryOrder = [
+    'career', 'instruction', 'mtss', 'specialed', 'attendance', 'datatools', 'family', 'assessment', 'planning'
+  ];
+
+  // Dynamic Tip Engine
+  const getExpertTip = useMemo(() => {
+    const tips = {
+      career: "When drafting CCR tools, focus on high-growth pathways and ensure certifications align with state-approved frameworks.",
+      instruction: "Strong curriculum prompts specify the learning objective and anticipated learner misconceptions up front.",
+      mtss: "MTSS tools work best when they suggest specific, measurable interventions across all three tiers of support.",
+      specialed: "When drafting SPED tools, always include a request for asset-based language and high expectations for all learners.",
+      attendance: "Focus on root causes like transportation or health to move from punitive measures to supportive attendance partnerships.",
+      datatools: "The best data tools specify the exact metrics to be analyzed, such as chronic absenteeism or standard-level mastery.",
+      family: "Family engagement prompts should always prioritize jargon-free language and clear, actionable home-to-school steps.",
+      assessment: "Adult learning theory is key for staff support; ensure your prompts allow for reflection and peer collaboration.",
+      planning: "Strategic planning tools are most effective when they align specific action steps to district-wide equity goals.",
+      builder: "Be as descriptive as possible about your challenge; you can use the Export feature to download your progress at any time.",
+      default: "The most effective tools are built through iteration. Small adjustments to the instructions can significantly improve the quality of the output."
+    };
+
+    if (activeView === 'builder') return tips.builder;
+    if (activeCategory) return tips[activeCategory] || tips.default;
+    return tips.default;
+  }, [activeCategory, activeView]);
+
+  const handleCopy = (text) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = String(text);
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  };
+
+  const handleToolGenerated = (newTool) => {
+    setDrafts(prev => [newTool, ...prev]);
+  };
+
+  const handleExport = () => {
+    if (drafts.length === 0) return;
+
+    let content = "# My Solara Tool History\n\n";
+    content += `Export Date: ${new Date().toLocaleDateString()}\n`;
+    content += "-------------------------------------------\n\n";
+
+    drafts.forEach((draft, idx) => {
+      content += `## ${idx + 1}. ${draft.title}\n`;
+      content += `**Category:** ${draft.category}\n`;
+      content += `**Description:** ${draft.description}\n\n`;
+      content += `### Tool Instructions\n${draft.instructions}\n\n`;
+      content += `### Recommended Text Fields\n`;
+      if (draft.recommendedFields && draft.recommendedFields.length > 0) {
+        draft.recommendedFields.forEach(f => content += `- ${f}\n`);
+      } else {
+        content += "None suggested.\n";
+      }
+      content += "\n-------------------------------------------\n\n";
+    });
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'my_solara_tool_drafts.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const navigateToCategory = (id) => { setActiveCategory(id); setActiveView('home'); setIsSidebarOpen(false); setSelectedDraftIndex(null); };
+  const navigateToHome = () => { setActiveCategory(null); setActiveView('home'); setIsSidebarOpen(false); setSelectedDraftIndex(null); };
+  const navigateToBuilder = () => { 
+    if (!hasSeenOnboarding) {
+      setOnboardingOpen(true);
+      setHasSeenOnboarding(true);
+    }
+    setActiveCategory(null); 
+    setActiveView('builder'); 
+    setIsSidebarOpen(false); 
+    setSelectedDraftIndex(null); 
+  };
+  const navigateToDraft = (index) => { setActiveCategory(null); setActiveView('drafts'); setSelectedDraftIndex(index); setIsSidebarOpen(false); };
+
+  const filteredCategoriesList = useMemo(() => {
+    const list = categoryOrder.map(id => APP_DATA[id]).filter(Boolean);
+    if (!searchQuery) return list;
+    return list.map(cat => ({
+      ...cat,
+      tools: cat.tools.filter(tool => 
+        (tool.title || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (tool.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (tool.category || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (cat.title || "").toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    })).filter(cat => cat.tools.length > 0);
+  }, [searchQuery]);
+
+  const matchingTools = useMemo(() => {
+    if (!searchQuery) return [];
+    const query = searchQuery.toLowerCase();
+    const results = [];
+    categoryOrder.forEach(catId => {
+      const cat = APP_DATA[catId];
+      if (!cat) return;
+      cat.tools.forEach((tool, idx) => {
+        if ((tool.title || "").toLowerCase().includes(query) || (tool.description || "").toLowerCase().includes(query) || (tool.category || "").toLowerCase().includes(query) || (cat.title || "").toLowerCase().includes(query)) {
+          results.push({ ...tool, categoryId: cat.id, index: idx, accent: cat.accent });
+        }
+      });
+    });
+    return results;
+  }, [searchQuery]);
+
+  const currentCategory = activeCategory ? APP_DATA[activeCategory] : null;
+
+  return (
+    <div className="min-h-screen font-sans overflow-x-hidden bg-white text-slate-900">
+      <aside className={`fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-200 z-50 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="p-6 h-full flex flex-col">
+          <div className="lg:hidden flex justify-end mb-4">
+            <button className="p-2" onClick={() => setIsSidebarOpen(false)}><X className="w-5 h-5 text-slate-400" /></button>
+          </div>
+          <nav className="space-y-1 overflow-y-auto pr-2 custom-scrollbar flex-1">
+            <button onClick={navigateToHome} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeView === 'home' && !activeCategory ? 'font-bold' : ''}`} style={{ backgroundColor: activeView === 'home' && !activeCategory ? LIGHT_GRAY : 'transparent', color: PANO_NAVY }}>
+              <Home className="w-5 h-5" /><span className="text-base font-semibold">Home</span>
+            </button>
+            <div className="space-y-1">
+              <button onClick={navigateToBuilder} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${activeView === 'builder' ? 'font-bold' : ''}`} style={{ backgroundColor: activeView === 'builder' ? LIGHT_GRAY : 'transparent', color: PANO_NAVY }}>
+                <Wand2 className={`w-5 h-5 ${activeView === 'builder' ? 'text-amber-500' : 'text-slate-400 group-hover:text-amber-500'}`} /><span className="text-base font-semibold">Tool Assistant</span>
+              </button>
+              
+              {/* My Drafts Nested Section */}
+              {drafts.length > 0 && (
+                <div className="pl-8 pb-2 space-y-1">
+                  <div className="flex items-center justify-between px-2 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                    <div className="flex items-center gap-2">
+                      <History className="w-3 h-3" />
+                      My Drafts
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModalContent({
+                          title: "Session History",
+                          content: "This history will only stay for this session. Your drafts will disappear next time you visit this resource, so make sure to use the 'Export History' button in the Tool Assistant to save your work permanently."
+                        });
+                      }}
+                      className="opacity-50 hover:opacity-100 transition-opacity"
+                    >
+                      <Info className="w-3 h-3" />
+                    </button>
+                  </div>
+                  {drafts.map((draft, idx) => (
+                    <button 
+                      key={idx}
+                      onClick={() => navigateToDraft(idx)}
+                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors truncate ${activeView === 'drafts' && selectedDraftIndex === idx ? 'bg-slate-100 font-bold text-pano-navy' : 'text-slate-500 hover:bg-slate-50'}`}
+                      title={draft.title}
+                    >
+                      {draft.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-6 pb-2">
+              <div className="h-px bg-slate-100 mb-6" />
+              <div className="px-4 text-xs font-bold tracking-widest text-slate-400 uppercase mb-3">Topics</div>
+            </div>
+            {categoryOrder.map(id => {
+              const cat = APP_DATA[id];
+              if (!cat) return null;
+              return (
+                <button key={cat.id} onClick={() => navigateToCategory(cat.id)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${activeCategory === cat.id ? 'font-bold' : ''}`} style={{ backgroundColor: activeCategory === cat.id ? LIGHT_GRAY : 'transparent', color: PANO_NAVY }}>
+                  <span className="w-5 flex justify-center">{cat.icon}</span>
+                  <span className="text-sm text-left leading-tight">{String(cat.shortTitle || cat.title)}</span>
+                </button>
+              );
+            })}
+          </nav>
+          
+          {/* REFORMATTED EXPERT TIP BOX */}
+          <div className="mt-auto pt-6 border-t border-slate-100">
+            <div className="p-4 rounded-xl bg-blue-50/40 border border-blue-100 relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: PANO_BLUE, opacity: 0.4 }} />
+              <p className="text-[11px] leading-relaxed font-medium text-slate-700 transition-all duration-300">
+                {getExpertTip}
+              </p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="lg:ml-72 min-h-screen">
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center gap-4">
+          <button className="lg:hidden p-2 hover:bg-slate-100 rounded-lg" onClick={() => setIsSidebarOpen(true)}><Menu className="w-6 h-6" style={{ color: PANO_NAVY }} /></button>
+          {activeView === 'home' && !activeCategory && (
+            <div className="relative flex-1 max-w-2xl">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input type="text" placeholder="Search for tools or keywords..." className="w-full bg-slate-100 border-none rounded-xl py-2 pl-10 pr-4 focus:ring-1 transition-all text-sm outline-none" style={{ color: DARK_GRAY }} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            </div>
+          )}
+        </header>
+
+        <div className="p-6 md:p-10 max-w-6xl mx-auto">
+          {activeView === 'builder' ? (
+            <ToolBuilderView onCopy={handleCopy} onInfoClick={setModalContent} onToolGenerated={handleToolGenerated} drafts={drafts} onExport={handleExport} />
+          ) : activeView === 'drafts' && selectedDraftIndex !== null ? (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
+                <button onClick={navigateToHome} className="flex items-center gap-2 font-semibold group text-sm text-slate-500 hover:text-slate-800">
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Home
+                </button>
+                <button 
+                  onClick={handleExport}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-xs font-bold text-slate-600"
+                >
+                  <Download className="w-4 h-4" />
+                  Export History
+                </button>
+              </div>
+              <div className="bg-white rounded-lg p-8 border border-slate-200 shadow-sm mb-10 flex flex-col md:flex-row items-start md:items-center gap-8">
+                <div className="p-6 rounded-full bg-slate-50 text-amber-500">
+                  <FileEdit className="w-8 h-8" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-widest">My Draft</span>
+                    <h2 className="text-3xl font-bold text-slate-900">{drafts[selectedDraftIndex].title}</h2>
+                  </div>
+                  <p className="max-w-2xl text-base md:text-lg text-slate-600">{drafts[selectedDraftIndex].description}</p>
+                </div>
+              </div>
+              <ToolCard 
+                tool={drafts[selectedDraftIndex]} 
+                categoryId="drafts" 
+                index={selectedDraftIndex} 
+                onCopy={handleCopy} 
+                onInfoClick={setModalContent} 
+                accentColor={PANO_BLUE} 
+                initiallyExpanded={true} 
+              />
+            </div>
+          ) : !activeCategory ? (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-12">
+                <h2 className="text-3xl md:text-5xl font-bold mb-4" style={{ color: PANO_NAVY }}>Solara Tool Guide</h2>
+                <p className="text-lg md:text-xl max-w-3xl leading-relaxed text-slate-600">Discover use-cases and exemplar instructions to create custom tools.</p>
+              </div>
+              {searchQuery ? (
+                <div className="space-y-8">
+                  <h3 className="text-xl font-bold" style={{ color: PANO_NAVY }}>Search Results ({matchingTools.length})</h3>
+                  {matchingTools.length > 0 ? (
+                    <div className="space-y-6">
+                      {matchingTools.map((match, i) => (
+                        <ToolCard key={`${match.categoryId}-${match.index}`} tool={match} categoryId={match.categoryId} index={match.index} onCopy={handleCopy} onInfoClick={setModalContent} accentColor={match.accent} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-20 text-center rounded-xl bg-slate-50 border border-slate-100">
+                      <p className="text-lg font-medium text-slate-500">No tools matched your search for "{String(searchQuery)}"</p>
+                      <button onClick={() => setSearchQuery('')} className="mt-4 font-bold text-sm underline" style={{ color: PANO_BLUE }}>Clear search</button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredCategoriesList.map(cat => (
+                    <div key={cat.id} onClick={() => navigateToCategory(cat.id)} className="group bg-white p-7 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col" >
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: LIGHT_GRAY }}>{cat.icon}</div>
+                      <h3 className="text-xl font-bold mb-3" style={{ color: PANO_NAVY }}>{String(cat.title)}</h3>
+                      <div className="text-sm leading-relaxed mb-6 flex-grow text-slate-600">{String(cat.summary)}</div>
+                      <div className="flex items-center font-bold text-[11px] uppercase tracking-widest mt-auto text-sky-700 group-hover:underline">VIEW TOOLS <ChevronRight className="w-4 h-4 ml-1" /></div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+              <button onClick={navigateToHome} className="flex items-center gap-2 font-semibold mb-6 group text-sm text-slate-500 hover:text-slate-800">
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Home
+              </button>
+              <div className="bg-white rounded-lg p-8 border border-slate-200 shadow-sm mb-10 flex flex-col md:flex-row items-start md:items-center gap-8">
+                <div className="p-6 rounded-full" style={{ backgroundColor: LIGHT_GRAY }}>{React.cloneElement(currentCategory.icon, { className: "w-8 h-8" })}</div>
+                <div>
+                  <h2 className="text-3xl font-bold mb-2 text-slate-900">{String(currentCategory.title)}</h2>
+                  <p className="max-w-2xl text-base md:text-lg text-slate-600">{String(currentCategory.description)}</p>
+                </div>
+              </div>
+              <div className="space-y-6">
+                {currentCategory.tools.map((tool, idx) => (
+                  <ToolCard key={idx} tool={tool} categoryId={currentCategory.id} index={idx} onCopy={handleCopy} onInfoClick={setModalContent} accentColor={currentCategory.accent} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <TooltipModal 
+        isOpen={!!modalContent} 
+        onClose={() => setModalContent(null)} 
+        title={modalContent?.title || ""} 
+        content={modalContent?.content || ""} 
+      />
+
+      <OnboardingModal 
+        isOpen={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+      />
+    </div>
+  );
+};
+
+export default App;
+
+
+
 
       // --- PASTE END ---
 
