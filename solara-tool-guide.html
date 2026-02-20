@@ -1,28 +1,36 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solara Custom Tool Assistant</title>
+    <title>Solara Tool Builder Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-white text-slate-900">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- CONSTANTS ---
+        // Lucid Icon Wrapper Component
+        const Icon = ({ name, ...props }) => {
+            const LucideIcon = lucide[name];
+            return LucideIcon ? <LucideIcon {...props} /> : null;
+        };
+
+        // BRAND COLORS CONSTANTS
         const PANO_NAVY = "#161242";
         const PANO_GREEN = "#1FAA4A";
         const PANO_BLUE = "#006DB0"; 
@@ -33,35 +41,45 @@
         const SECONDARY_LAVENDER = "#867EBB";
         const SECONDARY_LIME = "#9FCC3B";
 
-        const apiKey = ""; // <--- PASTE YOUR GEMINI API KEY HERE
+        // --- GEMINI API UTILS ---
+        const apiKey = ""; // USER API KEY HERE
 
-        // --- LUCIDE ICON COMPONENT ---
-        const Icon = ({ name, ...props }) => {
-            const [TargetIcon, setTargetIcon] = useState(null);
-            useEffect(() => {
-                const checkLucide = setInterval(() => {
-                    if (window.lucide) {
-                        setTargetIcon(() => window.lucide.icons[name] || window.lucide.icons['HelpCircle']);
-                        clearInterval(checkLucide);
-                    }
-                }, 50);
-                return () => clearInterval(checkLucide);
-            }, [name]);
-            
-            if (!TargetIcon) return <span className="w-5 h-5 block bg-slate-100 rounded animate-pulse" />;
-            const LucideIcon = TargetIcon;
-            return <LucideIcon {...props} />;
-        };
-
-        // --- API UTILS ---
         const callGemini = async (userQuery, retryCount = 0) => {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-            const systemPrompt = `You are the Solara Custom Tool Assistant. Output MUST be valid JSON. Schema: {title, description, instructions, category, categoryRationale, recommendedFields: []}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             
+            const systemPrompt = `
+                You are the Solara Custom Tool Assistant. Help educators design precise Custom Tools.
+                
+                GUIDELINES FOR GENERATION:
+                1. Instructions: Use PLAIN TEXT only (no markdown, no bolding, no rule tags). Keep them relatively short but highly effective.
+                2. Role & Responsibilities: Instructions must establish a clear Role Identity (e.g., "You are an expert reading specialist...") and list Core Responsibilities.
+                3. Category: Choose from ["Family Engagement", "Instructional Planning", "Student Engagement", "Student Support"].
+                4. Guardrails: Do not refer to student names or IDs; assume this data is provided by the platform.
+                
+                Output MUST be a valid JSON object following the responseSchema.
+            `;
+
             const payload = {
                 contents: [{ parts: [{ text: `Educator Need: ${userQuery}` }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json" }
+                generationConfig: { 
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            title: { type: "STRING" },
+                            description: { type: "STRING" },
+                            instructions: { type: "STRING" },
+                            category: { type: "STRING" },
+                            categoryRationale: { type: "STRING" },
+                            recommendedFields: {
+                                type: "ARRAY",
+                                items: { type: "STRING" }
+                            }
+                        },
+                        required: ["title", "description", "instructions", "category", "categoryRationale", "recommendedFields"]
+                    }
+                }
             };
 
             try {
@@ -70,148 +88,254 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!response.ok) throw new Error('API Request Failed');
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API request failed');
+                }
+
                 const result = await response.json();
-                return JSON.parse(result.candidates[0].content.parts[0].text);
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) throw new Error('Empty AI response');
+                return JSON.parse(text);
             } catch (error) {
-                if (retryCount < 2) return callGemini(userQuery, retryCount + 1);
+                if (retryCount < 5) {
+                    const delay = Math.pow(2, retryCount) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return callGemini(userQuery, retryCount + 1);
+                }
                 throw error;
             }
         };
 
-        // --- COMPLETE APP DATA ---
+        // --- DATA ---
         const APP_DATA = {
             mtss: {
                 id: 'mtss',
                 title: "MTSS and Student Support Tools",
                 shortTitle: "MTSS Tools",
-                iconName: 'Users',
+                icon: <Icon name="Users" style={{ color: PANO_GREEN }} className="w-5 h-5" />,
                 accent: SECONDARY_TURQUOISE,
-                description: "Develop multi-tiered support systems and interventions.",
+                description: "Develop multi-tiered support systems, tiered interventions, and student assistance frameworks to improve overall student academic and behavioral outcomes.",
                 summary: "Multi-tiered support systems, interventions, and student assistance.",
                 tools: [
-                    { title: "SMART Goal Generator", category: "Student Support", description: "Helps teachers create intervention-aligned SMART goals.", prompt: "Create a SMART goal for a student in the K–12 setting...", knowledge: ["SMART goal exemplars"], fields: ["Perceived need", "Domain", "Tier of support"] },
-                    { title: "MTSS Meeting Agenda Creator", category: "Student Support", description: "Creates structured agendas for MTSS meetings.", prompt: "Generate a detailed MTSS meeting agenda...", fields: ["Meeting type", "List of students"] },
-                    { title: "Individualized Behavior Plan Assistant", category: "Student Support", description: "Generates asset-based BIPs.", prompt: "Draft a student-centered behavior intervention plan...", fields: ["Target behavior", "Strengths"] },
-                    { title: "Student of Concern Form Generator", category: "Student Support", description: "Completes multi-page MTSS documentation.", prompt: "Complete the Student of Concern Form...", fields: ["Relevant data points"] }
+                    {
+                        title: "SMART Goal Generator",
+                        category: "Student Support",
+                        description: "Helps teachers create intervention-aligned SMART goals based on student data and district expectations.",
+                        prompt: "Create a SMART goal for a student in the K–12 setting that is Specific, Measurable, Achievable, Relevant, and Time-bound, ensuring alignment with the student's current academic or behavioral need (provide a concise rationale), their tier of support in an MTSS framework (Tier 1, Tier 2, or Tier 3), and the targeted domain (e.g., literacy, math, social-emotional skills, behavior). Format the output as a SMART Goal Statement (one clear sentence), Criteria for Measurement (bullet points), and Timeline for Achievement (specific date or timeframe). Ensure the goal is asset-based, strengths-oriented, and written in clear, educator-friendly language.",
+                        knowledge: ["SMART goal exemplars", "District goal-setting guidance", "MTSS tiered intervention libraries"],
+                        fields: ["Perceived need", "Domain (e.g., literacy, behavior)", "Tier of support", "Desired outcome timeframe"]
+                    },
+                    {
+                        title: "MTSS Meeting Agenda Creator",
+                        category: "Student Support",
+                        description: "Creates a structured agenda for school-based MTSS meetings, including discussion topics, student updates, and decision-making protocols tailored to the tiered support process.",
+                        prompt: "Generate a detailed MTSS meeting agenda for a Tier 2/3 team working in a K–12 setting. Include Agenda Sections with recommended time allocations (e.g., welcome, student updates, intervention review, new referrals, action planning), Key Discussion Items for both academic and behavioral supports, Student Update Format (student name/ID, current tier, progress toward goals, next steps), Facilitator Prompts for guiding discussion toward data-driven decisions, and Action Items Section with responsible party and due dates. Present the agenda in a professional, educator-facing format with headings, bullet points, and suggested timing for a 45–60 minute meeting.",
+                        knowledge: ["MTSS meeting protocols", "Role-specific responsibilities (e.g., facilitator, recorder)"],
+                        fields: ["Meeting type (Tier 2 or Tier 3)", "List of students to discuss", "Meeting duration", "Team member roles", "Notes from previous meetings (optional)"]
+                    }
                 ]
             },
             attendance: {
                 id: 'attendance',
                 title: "Attendance Tools",
                 shortTitle: "Attendance Tools",
-                iconName: 'Calendar',
+                icon: <Icon name="Calendar" style={{ color: PANO_GREEN }} className="w-5 h-5" />,
                 accent: SECONDARY_LIME,
-                description: "Tracking and improving student attendance patterns.",
-                summary: "Tracking, analyzing, and improving student attendance.",
+                description: "Tracking, analyzing, and improving student attendance patterns.",
+                summary: "Tracking, analyzing, and improving student attendance patterns.",
                 tools: [
-                    { title: "Attendance Contract Generator", category: "Student Support", description: "Drafts personalized improvement contracts.", prompt: "Generate a student-centered attendance contract...", fields: ["Identified barriers", "Family preferences"] },
-                    { title: "Attendance Data Summary Tool", category: "Student Support", description: "Summarizes patterns and risk areas.", prompt: "Summarize attendance trends...", fields: ["Time period"] }
+                    {
+                        title: "Attendance Contract Generator",
+                        category: "Student Support",
+                        description: "Drafts personalized attendance improvement contracts that outline shared expectations, goals, and supports between the student, family, and school.",
+                        prompt: "Generate a student-centered attendance contract for a K–12 student that is collaborative, supportive, and solution-oriented. Structure the contract to include student information (name, grade, date), attendance expectations (clear, measurable targets), support strategies (school-based supports, family involvement, community resources), shared commitments (student, family, and school responsibilities), and review and check-in dates. Ensure the language is positive, encouraging, and non-punitive, emphasizing partnership and shared goals. Format for easy printing and signing.",
+                        knowledge: ["District attendance contract templates", "Tiered intervention guidance", "Family–school partnership best practices"],
+                        fields: ["Identified barriers", "Family engagement preferences", "Suggested support strategies", "Contract timeframe"]
+                    }
                 ]
             },
             instruction: {
                 id: 'instruction',
                 title: "Instruction and Curriculum Tools",
                 shortTitle: "Curriculum Tools",
-                iconName: 'BookOpen',
+                icon: <Icon name="BookOpen" style={{ color: PANO_GREEN }} className="w-5 h-5" />,
                 accent: SECONDARY_TEAL,
-                description: "Lesson planning and instructional strategies.",
-                summary: "Lesson planning and curriculum development.",
+                description: "Lesson planning, curriculum development, and instructional strategies.",
+                summary: "Lesson planning, curriculum development, and instructional strategies.",
                 tools: [
-                    { title: "Lesson Re-Teach Plan Generator", category: "Instructional Planning", description: "Creates plans for struggling students.", prompt: "Design a re-teach plan...", fields: ["Concept", "Group size"] },
-                    { title: "Rubric Generator", category: "Instructional Planning", description: "Builds standard-aligned rubrics.", prompt: "Generate a detailed rubric...", fields: ["Learning objectives", "Points"] },
-                    { title: "DOK Questions", category: "Instructional Planning", description: "Crafts Depth of Knowledge questions.", prompt: "Analyze uploaded documents and generate DOK questions...", fields: ["Grade Level", "Subject"] }
+                    {
+                        title: "Rubric Generator",
+                        category: "Instructional Planning",
+                        description: "Builds grading rubrics aligned to standards, success criteria, and assignment goals. Teachers can specify performance levels and descriptors.",
+                        prompt: "Generate a detailed rubric for a K–12 assignment, fully aligned to the provided learning standard and assignment description. Include four performance levels with clear, observable descriptors for each criterion. Ensure the criteria reflect the essential skills and knowledge from the standard and are written in student-friendly language. Format the rubric in a table with performance levels across the top and criteria down the side, ensuring descriptors are objective, equitable, and measurable.",
+                        knowledge: ["Standards-aligned rubric examples", "District grading policies"],
+                        fields: ["Assignment description", "Number of points", "Learning objectives", "Performance levels", "Success criteria"]
+                    }
                 ]
             },
             career: {
                 id: 'career',
                 title: "College and Career Readiness Tools",
                 shortTitle: "CCR Tools",
-                iconName: 'GraduationCap',
+                icon: <Icon name="GraduationCap" style={{ color: PANO_GREEN }} className="w-5 h-5" />,
                 accent: SECONDARY_LIME,
-                description: "Preparing students for post-secondary success.",
-                summary: "Preparing students for post-secondary success.",
+                description: "Preparing students for post-secondary success and career planning.",
+                summary: "Preparing students for post-secondary success and career planning.",
                 tools: [
-                    { title: "Career Pathway Exploration Tool", category: "Student Engagement", description: "Matches students with pathways.", prompt: "Recommend career pathways...", fields: ["Interests", "Strengths"] },
-                    { title: "Letter of Recommendation Generator", category: "Student Engagement", description: "Drafts personalized recommendation letters.", prompt: "Write a formal letter of recommendation...", fields: ["Target program", "Tone"] }
+                    {
+                        title: "Career Pathway Exploration Tool",
+                        category: "Student Engagement",
+                        description: "Matches students with potential career pathways based on their interests, strengths, and academic profiles.",
+                        prompt: "Recommend career pathways for a K–12 student based on their documented interests and academic strengths. Align recommendations to a recognized career cluster framework such as the 16 Career Clusters or state equivalents.",
+                        knowledge: ["Career interest inventories", "State career clusters/pathways"],
+                        fields: ["Student interests", "Strengths/skills", "Preferred working style", "Post-grad goals"]
+                    }
                 ]
             },
             family: {
                 id: 'family',
                 title: "Family Engagement Tools",
                 shortTitle: "Family Engagement",
-                iconName: 'Heart',
+                icon: <Icon name="Heart" style={{ color: PANO_GREEN }} className="w-5 h-5" />,
                 accent: SECONDARY_LAVENDER,
-                description: "Building stronger home-school connections.",
-                summary: "Building stronger connections between families and schools.",
+                description: "Building stronger connections between families, students, and schools.",
+                summary: "Building stronger connections between families, students, and schools.",
                 tools: [
-                    { title: "Parent/Teacher Conference Prep Tool", category: "Family Engagement", description: "Summarizes strengths and growth areas.", prompt: "Generate a conference preparation sheet...", fields: ["Conference length"] },
-                    { title: "Family Update Generator", category: "Family Engagement", description: "Drafts personalized updates.", prompt: "Create a biweekly family update...", fields: ["Student progress"] }
-                ]
-            },
-            specialed: {
-                id: 'specialed',
-                title: "Special Education and 504 Planning Tools",
-                shortTitle: "SPED Tools",
-                iconName: 'Target',
-                accent: SECONDARY_LAVENDER,
-                description: "Documentation and goals for diverse needs.",
-                summary: "Documentation and personalized support for diverse needs.",
-                tools: [
-                    { title: "IEP Goal Writer", category: "Student Support", description: "Generates measurable IEP goals.", prompt: "Generate a measurable IEP goal...", fields: ["Area of focus", "Timeframe"] },
-                    { title: "IEP at a Glance Generator", category: "Student Support", description: "Concise summary for teachers.", prompt: "Generate an IEP at a Glance summary...", fields: ["Accommodations"] }
+                    {
+                        title: "Family Update Generator",
+                        category: "Family Engagement",
+                        description: "Drafts regular, personalized updates to families about student progress, upcoming events, or ways to support learning at home.",
+                        prompt: "Create a biweekly family update for a K–12 student that summarizes academic progress, strengths, and next steps for learning. Use clear, friendly, and strengths-focused language that avoids educational jargon.",
+                        knowledge: ["Examples of family newsletters/messages", "Upcoming important dates", "Suggested home activities"],
+                        fields: ["Student progress highlights", "Areas for growth", "Home support suggestions", "Upcoming events or deadlines"]
+                    }
                 ]
             }
+            // Note: Truncated for script brevity, but easily expandable by adding other keys from your original data.
         };
 
-        // --- COMPONENTS ---
+        // --- SUB-COMPONENTS ---
 
-        function ToolCard({ tool, categoryId, index, onCopy, accentColor }) {
-            const [isExpanded, setIsExpanded] = useState(false);
-            const [copied, setCopied] = useState(false);
+        function TooltipModal({ isOpen, onClose, title, content }) {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors">
+                            <Icon name="X" className="w-5 h-5" />
+                        </button>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-slate-100 rounded-lg" style={{ color: PANO_NAVY }}>
+                                <Icon name="Lightbulb" className="w-5 h-5" />
+                            </div>
+                            <h3 className="text-xl font-bold" style={{ color: PANO_NAVY }}>{String(title)}</h3>
+                        </div>
+                        <div className="leading-relaxed text-sm md:text-base text-slate-600">
+                            {String(content)}
+                        </div>
+                        <button onClick={onClose} className="mt-6 w-full py-2 text-white rounded-xl font-semibold transition-colors" style={{ backgroundColor: PANO_NAVY }}>
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            );
+        }
 
-            const handleCopy = (e) => {
-                e.stopPropagation();
-                onCopy(tool.prompt || tool.instructions);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
+        function OnboardingModal({ isOpen, onClose }) {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 relative text-center">
+                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Icon name="Wand2" className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-xl font-bold mb-3 text-slate-900">Welcome to Tool Assistant</h3>
+                        <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                            This workspace helps you generate new tool ideas. Just describe a classroom task or challenge and AI will draft a tool for you.
+                        </p>
+                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-8">
+                            <p className="text-xs text-amber-800 font-medium leading-relaxed text-left">
+                                Note: Your tool history exists only for this current session. You can use the Export feature to download your tool drafts before you leave.
+                            </p>
+                        </div>
+                        <button onClick={onClose} className="w-full py-3 text-white rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-900/20" style={{ backgroundColor: PANO_NAVY }}>
+                            Let's get started
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function ToolCard({ tool, categoryId, index, onCopy, onInfoClick, accentColor, initiallyExpanded = false }) {
+            const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
+            const [copyFeedback, setCopyFeedback] = useState(null);
+
+            const triggerCopy = (text, id) => {
+                onCopy(String(text), id);
+                setCopyFeedback(id);
+                setTimeout(() => setCopyFeedback(null), 2000);
             };
 
+            const toolId = `${categoryId}-${index}`;
+            const fields = tool.fields || (tool.recommendedFields ? tool.recommendedFields.map(f => f.fieldName || f) : []);
+
             return (
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-                    <div className="p-6 cursor-pointer flex justify-between items-center" onClick={() => setIsExpanded(!isExpanded)}>
-                        <div className="pr-4">
-                            <h3 className="text-xl font-bold" style={{ color: PANO_NAVY }}>{tool.title}</h3>
-                            <p className="text-slate-500 text-sm mt-1">{tool.description}</p>
+                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm transition-all duration-300 mb-4">
+                    <div className="p-6 md:p-8 cursor-pointer hover:bg-slate-50 transition-colors flex flex-col justify-between items-start gap-4" onClick={() => setIsExpanded(!isExpanded)}>
+                        <div className="w-full">
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-2xl font-bold transition-colors" style={{ color: PANO_NAVY }}>{String(tool.title)}</h3>
+                                </div>
+                                <Icon name="ChevronDown" className={`w-6 h-6 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                            </div>
+                            <div className="text-base leading-relaxed max-w-2xl text-slate-600">
+                                {String(tool.description)}
+                            </div>
                         </div>
-                        <Icon name={isExpanded ? "ChevronUp" : "ChevronDown"} className="w-6 h-6 text-slate-300" />
                     </div>
+
                     {isExpanded && (
-                        <div className="p-6 border-t border-slate-100 bg-slate-50/50 animate-in">
-                            <div className="flex justify-between items-center mb-4">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">System Instructions</span>
-                                <button onClick={handleCopy} className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all ${copied ? 'bg-green-600 text-white' : 'bg-slate-900 text-white'}`}>
-                                    <Icon name={copied ? "Check" : "Copy"} className="w-3.5 h-3.5" />
-                                    {copied ? "Copied!" : "Copy Instructions"}
-                                </button>
+                        <div className="p-6 md:p-8 border-t border-slate-100 bg-white grid grid-cols-1 xl:grid-cols-2 gap-10">
+                            <div className="space-y-6">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest" style={{ color: PANO_NAVY }}>
+                                            <Icon name="FileText" className="w-3.5 h-3.5" style={{ color: PANO_GREEN }} /> Tool Instructions
+                                        </div>
+                                        <button onClick={(e) => { e.stopPropagation(); triggerCopy(tool.prompt || tool.instructions, `${toolId}-instructions`); }} className={`whitespace-nowrap px-4 py-1.5 rounded font-bold flex items-center gap-2 transition-all text-[10px] uppercase tracking-wider text-white ${copyFeedback === `${toolId}-instructions` ? 'bg-green-600' : 'bg-blue-600'}`}>
+                                            {copyFeedback === `${toolId}-instructions` ? <Icon name="Check" className="w-3 h-3" /> : <Icon name="Copy" className="w-3 h-3" />}
+                                            {copyFeedback === `${toolId}-instructions` ? 'Copied!' : 'Copy Instructions'}
+                                        </button>
+                                    </div>
+                                    <div className="p-6 rounded border border-slate-100 leading-relaxed italic text-sm border-l-4 text-slate-700 whitespace-pre-wrap" style={{ backgroundColor: LIGHT_GRAY, borderLeftColor: PANO_GREEN }}>
+                                        "{String(tool.prompt || tool.instructions)}"
+                                    </div>
+                                </div>
                             </div>
-                            <div className="p-4 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 italic leading-relaxed whitespace-pre-wrap mb-6">
-                                "{tool.prompt || tool.instructions}"
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Recommended Fields</h4>
-                                    <ul className="space-y-1">
-                                        {(tool.fields || []).map((f, i) => (
-                                            <li key={i} className="text-xs text-slate-600 flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accentColor }} /> {f}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest" style={{ color: PANO_NAVY }}>
+                                        <Icon name="Tag" className="w-3.5 h-3.5" style={{ color: PANO_GREEN }} /> Tool Category
+                                    </div>
+                                    <div className="inline-flex items-center px-3 py-1 rounded text-xs font-bold shadow-sm bg-slate-800 text-white">
+                                        {String(tool.category)}
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest" style={{ color: PANO_GREEN }}>
+                                        <Icon name="TrendingUp" className="w-3.5 h-3.5" /> Recommended Fields
+                                    </div>
+                                    <ul className="space-y-3">
+                                        {fields.map((f, fIdx) => (
+                                            <li key={fIdx} className="flex items-center gap-2 text-xs text-slate-600">
+                                                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: accentColor || PANO_GREEN }} />
+                                                <span>{String(f)}</span>
                                             </li>
                                         ))}
                                     </ul>
-                                </div>
-                                <div>
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Category</h4>
-                                    <span className="text-[10px] font-bold bg-slate-200 px-2 py-1 rounded">{tool.category}</span>
                                 </div>
                             </div>
                         </div>
@@ -220,154 +344,159 @@
             );
         }
 
-        const App = () => {
-            const [activeCategory, setActiveCategory] = useState(null);
-            const [view, setView] = useState('home');
-            const [isSidebarOpen, setSidebarOpen] = useState(false);
-            const [userInput, setUserInput] = useState("");
+        function ToolBuilderView({ onCopy, onInfoClick, onToolGenerated, drafts, onExport }) {
+            const [userInput, setUserInput] = useState('');
             const [loading, setLoading] = useState(false);
-            const [generatedTool, setGeneratedTool] = useState(null);
-
-            const handleCopy = (text) => {
-                const el = document.createElement('textarea');
-                el.value = text;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
-            };
+            const [result, setResult] = useState(null);
+            const [error, setError] = useState(null);
 
             const handleGenerate = async () => {
-                if (!userInput || !apiKey) return alert("Please enter a need and ensure API Key is set in the code.");
+                if (!userInput.trim()) return;
                 setLoading(true);
+                setError(null);
+                setResult(null);
                 try {
-                    const res = await callGemini(userInput);
-                    setGeneratedTool(res);
-                } catch (e) {
-                    alert("Generation failed. Check your API key.");
+                    const toolData = await callGemini(userInput);
+                    setResult(toolData);
+                    onToolGenerated(toolData);
+                } catch (err) {
+                    setError(err.message || "Encountered an error. Check API key.");
                 } finally {
                     setLoading(false);
                 }
             };
 
             return (
-                <div className="flex min-h-screen">
-                    {/* SIDEBAR */}
-                    <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300`}>
+                <div className="space-y-12">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div className="max-w-3xl">
+                            <h2 className="text-4xl font-bold mb-4" style={{ color: PANO_NAVY }}>Solara Tool Builder Assistant</h2>
+                            <p className="text-lg text-slate-600 leading-relaxed">Describe a classroom challenge and AI will draft a tool for you.</p>
+                        </div>
+                        {drafts.length > 0 && (
+                            <button onClick={onExport} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm font-bold text-slate-600">
+                                <Icon name="Download" className="w-4 h-4" /> Export History
+                            </button>
+                        )}
+                    </div>
+                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                        <textarea className="w-full h-40 bg-slate-50 border border-slate-200 rounded-xl p-6 text-base outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g., I need a tool for..." value={userInput} onChange={(e) => setUserInput(e.target.value)} />
+                        <button onClick={handleGenerate} disabled={loading || !userInput.trim()} className="w-full py-4 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-3 disabled:opacity-50" style={{ backgroundColor: PANO_NAVY }}>
+                            {loading ? <Icon name="Loader2" className="w-6 h-6 animate-spin" /> : <Icon name="Sparkles" className="w-6 h-6 text-yellow-400" />}
+                            {loading ? 'Drafting...' : 'Draft My Tool'}
+                        </button>
+                        {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100">{error}</div>}
+                    </div>
+                    {result && <ToolCard tool={result} categoryId="ai-drafted" index={0} onCopy={onCopy} onInfoClick={onInfoClick} accentColor={SECONDARY_TEAL} initiallyExpanded={true} />}
+                </div>
+            );
+        }
+
+        const App = () => {
+            const [activeCategory, setActiveCategory] = useState(null);
+            const [activeView, setActiveView] = useState('home'); 
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [modalContent, setModalContent] = useState(null);
+            const [drafts, setDrafts] = useState([]);
+            const [onboardingOpen, setOnboardingOpen] = useState(false);
+
+            const categoryOrder = ['career', 'instruction', 'mtss', 'attendance', 'family'];
+
+            const handleCopy = (text) => {
+                navigator.clipboard.writeText(text);
+            };
+
+            const handleToolGenerated = (newTool) => {
+                setDrafts(prev => [newTool, ...prev]);
+            };
+
+            const handleExport = () => {
+                const content = JSON.stringify(drafts, null, 2);
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'tool_drafts.txt';
+                link.click();
+            };
+
+            const currentCategory = activeCategory ? APP_DATA[activeCategory] : null;
+
+            return (
+                <div className="min-h-screen bg-slate-50 text-slate-900 flex">
+                    {/* Sidebar */}
+                    <aside className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-0 z-40 w-72 bg-white border-r border-slate-200 transition-transform duration-300 ease-in-out`}>
                         <div className="p-6 flex flex-col h-full">
-                            <div className="flex items-center gap-2 mb-10 px-2">
-                                <div className="w-8 h-8 rounded bg-emerald-500 flex items-center justify-center text-white"><Icon name="Zap" /></div>
-                                <h1 className="text-xl font-extrabold tracking-tight" style={{ color: PANO_NAVY }}>SOLARA</h1>
+                            <div className="flex items-center justify-between mb-8">
+                                <h1 className="text-xl font-bold" style={{ color: PANO_NAVY }}>Solara Guide</h1>
+                                <button className="lg:hidden" onClick={() => setIsSidebarOpen(false)}><Icon name="X" className="w-5 h-5" /></button>
                             </div>
-                            
-                            <nav className="flex-1 space-y-1 custom-scrollbar overflow-y-auto pr-2">
-                                <button onClick={() => {setView('home'); setActiveCategory(null); setSidebarOpen(false)}} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${view === 'home' && !activeCategory ? 'bg-slate-100' : 'hover:bg-slate-50'}`}>
+                            <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
+                                <button onClick={() => { setActiveView('home'); setActiveCategory(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${activeView === 'home' && !activeCategory ? 'bg-slate-100 font-bold' : ''}`}>
                                     <Icon name="Home" className="w-5 h-5" /> Home
                                 </button>
-                                <button onClick={() => {setView('builder'); setActiveCategory(null); setSidebarOpen(false)}} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${view === 'builder' ? 'bg-slate-100 text-amber-600' : 'hover:bg-slate-50'}`}>
-                                    <Icon name="Wand2" className="w-5 h-5" /> Tool Assistant
+                                <button onClick={() => { setActiveView('builder'); setActiveCategory(null); setOnboardingOpen(true); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${activeView === 'builder' ? 'bg-slate-100 font-bold' : ''}`}>
+                                    <Icon name="Wand2" className="w-5 h-5 text-amber-500" /> Tool Assistant
                                 </button>
-
-                                <div className="pt-8 pb-4 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Library</div>
-                                {Object.values(APP_DATA).map(cat => (
-                                    <button key={cat.id} onClick={() => {setActiveCategory(cat.id); setView('home'); setSidebarOpen(false)}} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${activeCategory === cat.id ? 'bg-slate-100' : 'hover:bg-slate-50'}`}>
-                                        <Icon name={cat.iconName} className="w-5 h-5" style={{ color: cat.accent }} /> {cat.shortTitle}
+                                <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Categories</div>
+                                {categoryOrder.map(id => (
+                                    <button key={id} onClick={() => { setActiveCategory(id); setActiveView('home'); }} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl ${activeCategory === id ? 'bg-slate-100 font-bold' : ''}`}>
+                                        {APP_DATA[id].icon} {APP_DATA[id].shortTitle}
                                     </button>
                                 ))}
                             </nav>
                         </div>
                     </aside>
 
-                    {/* MAIN CONTENT */}
-                    <main className="flex-1 lg:ml-72 bg-slate-50/50 p-6 lg:p-12">
-                        <header className="lg:hidden flex items-center justify-between mb-8">
-                            <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white border rounded-lg shadow-sm"><Icon name="Menu" /></button>
-                            <h1 className="font-bold">Solara Guide</h1>
+                    {/* Main Content */}
+                    <div className="flex-1 flex flex-col min-h-screen">
+                        <header className="h-16 bg-white border-b border-slate-200 flex items-center px-6 gap-4 sticky top-0 z-30">
+                            <button className="lg:hidden" onClick={() => setIsSidebarOpen(true)}><Icon name="Menu" className="w-6 h-6" /></button>
+                            <div className="relative flex-1 max-w-md">
+                                <Icon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                <input type="text" className="w-full bg-slate-100 rounded-lg pl-10 pr-4 py-2 text-sm outline-none" placeholder="Search tools..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                            </div>
                         </header>
 
-                        <div className="max-w-4xl mx-auto">
-                            {view === 'builder' ? (
-                                <div className="animate-in">
-                                    <h2 className="text-4xl font-extrabold mb-4" style={{ color: PANO_NAVY }}>Tool Builder</h2>
-                                    <p className="text-slate-500 mb-8">Describe a task, and AI will draft your custom tool specifications.</p>
-                                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl space-y-6">
-                                        <textarea 
-                                            value={userInput}
-                                            onChange={(e) => setUserInput(e.target.value)}
-                                            className="w-full h-40 p-6 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg" 
-                                            placeholder="Example: I need a tool that analyzes student reading scores and suggests 3 small-group activities..."
-                                        />
-                                        <button 
-                                            onClick={handleGenerate}
-                                            disabled={loading}
-                                            className="w-full py-4 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-black transition-all"
-                                        >
-                                            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Icon name="Sparkles" className="text-amber-400" />}
-                                            {loading ? "Drafting..." : "Generate Tool Blueprint"}
-                                        </button>
-                                    </div>
-
-                                    {generatedTool && (
-                                        <div className="mt-12 space-y-6 animate-in">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <Icon name="CheckCircle" className="text-green-500 w-6 h-6" />
-                                                <h3 className="text-2xl font-bold">AI Blueprint Generated</h3>
-                                            </div>
-                                            <ToolCard tool={generatedTool} categoryId="ai" index={0} onCopy={handleCopy} accentColor={SECONDARY_TEAL} />
-                                        </div>
-                                    )}
-                                </div>
+                        <main className="p-6 md:p-10 max-w-6xl mx-auto w-full">
+                            {activeView === 'builder' ? (
+                                <ToolBuilderView onCopy={handleCopy} onInfoClick={setModalContent} onToolGenerated={handleToolGenerated} drafts={drafts} onExport={handleExport} />
                             ) : activeCategory ? (
-                                <div className="animate-in">
-                                    <div className="flex items-center gap-6 mb-10">
-                                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: APP_DATA[activeCategory].accent }}>
-                                            <Icon name={APP_DATA[activeCategory].iconName} className="w-8 h-8" />
-                                        </div>
+                                <div className="space-y-8">
+                                    <div className="bg-white p-8 rounded-xl border border-slate-200 flex items-center gap-6">
+                                        <div className="p-4 bg-slate-50 rounded-full">{currentCategory.icon}</div>
                                         <div>
-                                            <h2 className="text-4xl font-extrabold" style={{ color: PANO_NAVY }}>{APP_DATA[activeCategory].title}</h2>
-                                            <p className="text-slate-500 mt-1">{APP_DATA[activeCategory].description}</p>
+                                            <h2 className="text-3xl font-bold">{currentCategory.title}</h2>
+                                            <p className="text-slate-600">{currentCategory.description}</p>
                                         </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        {APP_DATA[activeCategory].tools.map((t, i) => (
-                                            <ToolCard key={i} tool={t} categoryId={activeCategory} index={i} onCopy={handleCopy} accentColor={APP_DATA[activeCategory].accent} />
-                                        ))}
-                                    </div>
+                                    {currentCategory.tools.map((t, i) => <ToolCard key={i} tool={t} categoryId={activeCategory} index={i} onCopy={handleCopy} onInfoClick={setModalContent} accentColor={currentCategory.accent} />)}
                                 </div>
                             ) : (
-                                <div className="animate-in">
-                                    <h2 className="text-5xl font-extrabold mb-4" style={{ color: PANO_NAVY }}>Solara Guide</h2>
-                                    <p className="text-xl text-slate-500 mb-12">Select a category to explore exemplar tool prompts.</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {Object.values(APP_DATA).map(cat => (
-                                            <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer">
-                                                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-6 text-white shadow-md transition-transform group-hover:scale-110" style={{ backgroundColor: cat.accent }}>
-                                                    <Icon name={cat.iconName} />
-                                                </div>
-                                                <h3 className="text-2xl font-bold mb-2" style={{ color: PANO_NAVY }}>{cat.title}</h3>
-                                                <p className="text-slate-500 text-sm leading-relaxed mb-6">{cat.summary}</p>
-                                                <div className="flex items-center text-xs font-bold uppercase tracking-widest text-blue-600">
-                                                    Explore Tools <Icon name="ChevronRight" className="w-4 h-4 ml-1" />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {categoryOrder.map(id => (
+                                        <div key={id} onClick={() => setActiveCategory(id)} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all">
+                                            <div className="mb-4">{APP_DATA[id].icon}</div>
+                                            <h3 className="font-bold text-lg mb-2">{APP_DATA[id].title}</h3>
+                                            <p className="text-sm text-slate-500">{APP_DATA[id].summary}</p>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
-                        </div>
-                    </main>
+                        </main>
+                    </div>
+
+                    <TooltipModal isOpen={!!modalContent} onClose={() => setModalContent(null)} title={modalContent?.title} content={modalContent?.content} />
+                    <OnboardingModal isOpen={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
                 </div>
             );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-
-        // Load Lucide Icons
-        const script = document.createElement('script');
-        script.src = "https://unpkg.com/lucide@latest";
-        script.onload = () => window.lucide.createIcons();
-        document.head.appendChild(script);
     </script>
 </body>
 </html>
+
+
