@@ -5,254 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Solara Tool Guide</title>
 
-    <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Babel transpiles JSX in the browser (so React code can run inside HTML) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   </head>
 
   <body class="bg-white">
     <div id="root"></div>
 
-    <!-- React app -->
-    <script type="text/babel" data-type="module">
-      import React, { useState, useMemo } from "https://esm.sh/react@18";
-      import ReactDOM from "https://esm.sh/react-dom@18/client";
-      import * as Icons from "https://esm.sh/lucide-react@0.539.0";
+    <div
+      id="errorBox"
+      style="display:none; white-space:pre-wrap;"
+      class="fixed bottom-4 left-4 right-4 max-w-4xl mx-auto bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl text-sm font-mono shadow-lg"
+    ></div>
 
-      // Map lucide icons to the names you used
-      const {
-        Search,
-        ChevronRight,
-        ChevronDown,
-        Home,
-        Copy,
-        Check,
-        Info,
-        Menu,
-        X,
-        BookOpen,
-        Users,
-        Target,
-        Calendar,
-        BarChart,
-        FileText,
-        School,
-        GraduationCap,
-        ArrowLeft,
-        Heart,
-        Brain,
-        TrendingUp,
-        Tag,
-        Wand2,
-        Sparkles,
-        Loader2,
-        Lightbulb,
-        History,
-        FileEdit,
-        Download,
-      } = Icons;
+    <script type="text/babel">
+      const { useState, useEffect, useMemo } = React;
 
-      // ========= PASTE YOUR APP CODE BELOW =========
-      // IMPORTANT CHANGES YOU MUST MAKE:
-      // 1) DELETE the top import lines:
-      //    import React... from 'react';
-      //    import {...} from 'lucide-react';
-      // 2) DELETE the last line:
-      //    export default App;
-      // 3) Keep everything else the same.
-
-      // BRAND COLORS CONSTANTS
-      const PANO_NAVY = "#161242";
-      const PANO_GREEN = "#1FAA4A";
-      const PANO_BLUE = "#006DB0";
-      const DARK_GRAY = "#333333";
-      const LIGHT_GRAY = "#EEEEEE";
-      const SECONDARY_TURQUOISE = "#108A7D";
-      const SECONDARY_TEAL = "#00A1BB";
-      const SECONDARY_LAVENDER = "#867EBB";
-      const SECONDARY_LIME = "#9FCC3B";
-
-      // --- GEMINI API UTILS ---
-      // WARNING: putting an API key in a public GitHub page exposes it to everyone.
-      // If you set this, assume it is visible and can be abused.
-      const apiKey = "";
-
-      const callGemini = async (userQuery, retryCount = 0) => {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-        const systemPrompt = `
-You are the Solara Custom Tool Assistant. Help educators design precise Custom Tools.
-
-GUIDELINES FOR GENERATION:
-1. Instructions: Use PLAIN TEXT only (no markdown, no bolding, no rule tags). Keep them relatively short but highly effective.
-2. Tool Description: Provide a professional one-sentence summary of the tool.
-3. Category: Choose from ["Family Engagement", "Instructional Planning", "Student Engagement", "Student Support"].
-4. Recommended Text Fields: Suggest specific context fields.
-
-Output MUST be a valid JSON object following the responseSchema.
-        `;
-
-        const payload = {
-          contents: [{ parts: [{ text: `Educator Need: ${userQuery}` }] }],
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                title: { type: "STRING" },
-                description: { type: "STRING" },
-                instructions: { type: "STRING" },
-                category: { type: "STRING" },
-                recommendedFields: {
-                  type: "ARRAY",
-                  items: { type: "STRING" },
-                },
-              },
-              required: ["title", "description", "instructions", "category", "recommendedFields"],
-            },
-          },
-        };
-
-        try {
-          const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || "API request failed");
-          }
-
-          const result = await response.json();
-          const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!text) throw new Error("Empty AI response");
-          return JSON.parse(text);
-        } catch (error) {
-          if (retryCount < 5) {
-            const delay = Math.pow(2, retryCount) * 1000;
-            await new Promise((resolve) => setTimeout(resolve, delay));
-            return callGemini(userQuery, retryCount + 1);
-          }
-          throw error;
-        }
-      };
-
-      // --- DATA ---
-      // PASTE YOUR APP_DATA OBJECT HERE (it’s huge, but it’s fine)
-      const APP_DATA = {
-        mtss: {
-          id: "mtss",
-          title: "MTSS and Student Support Tools",
-          shortTitle: "MTSS Tools",
-          icon: <Users style={{ color: PANO_GREEN }} className="w-5 h-5" />,
-          accent: SECONDARY_TURQUOISE,
-          description:
-            "Develop multi-tiered support systems, tiered interventions, and student assistance frameworks to improve overall student academic and behavioral outcomes.",
-          summary: "Multi-tiered support systems, interventions, and student assistance.",
-          tools: [
-            {
-              title: "SMART Goal Generator",
-              category: "Student Support",
-              description:
-                "Helps teachers create intervention-aligned SMART goals based on student data and district expectations.",
-              prompt:
-                "Create a SMART goal for a student in the K–12 setting that is Specific, Measurable, Achievable, Relevant, and Time-bound, ensuring alignment with the student's current academic or behavioral need (provide a concise rationale), their tier of support in an MTSS framework (Tier 1, Tier 2, or Tier 3), and the targeted domain (e.g., literacy, math, social-emotional skills, behavior). Format the output as a SMART Goal Statement (one clear sentence), Criteria for Measurement (bullet points), and Timeline for Achievement (specific date or timeframe). Ensure the goal is asset-based, strengths-oriented, and written in clear, educator-friendly language.",
-              knowledge: ["SMART goal exemplars", "District goal-setting guidance", "MTSS tiered intervention libraries"],
-              fields: ["Perceived need", "Domain (e.g., literacy, behavior)", "Tier of support", "Desired outcome timeframe"],
-            },
-          ],
-        },
-      };
-
-      // --- SUB-COMPONENTS ---
-      function TooltipModal({ isOpen, onClose, title, content }) {
-        if (!isOpen) return null;
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative animate-in zoom-in-95 duration-200">
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-slate-100 rounded-lg" style={{ color: PANO_NAVY }}>
-                  <Lightbulb className="w-5 h-5" />
-                </div>
-                <h3 className="text-xl font-bold" style={{ color: PANO_NAVY }}>
-                  {String(title)}
-                </h3>
-              </div>
-              <div className="leading-relaxed text-sm md:text-base text-slate-600">{String(content)}</div>
-              <button
-                onClick={onClose}
-                className="mt-6 w-full py-2 text-white rounded-xl font-semibold transition-colors"
-                style={{ backgroundColor: PANO_NAVY }}
-              >
-                Got it
-              </button>
-            </div>
-          </div>
-        );
+      function LucideIcon({ name, className, style }) {
+        const svg =
+          window.lucide && window.lucide.icons && window.lucide.icons[name]
+            ? window.lucide.icons[name].toSvg({ class: className || "" })
+            : "";
+        return <span style={style} dangerouslySetInnerHTML={{ __html: svg }} />;
       }
 
-      function OnboardingModal({ isOpen, onClose }) {
-        if (!isOpen) return null;
-        return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl max-sm w-full p-8 relative animate-in zoom-in-95 duration-200 text-center">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Wand2 className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-slate-900">Welcome to Tool Assistant</h3>
-              <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                This workspace helps you generate new tool ideas. Just describe a classroom task or challenge and AI will
-                draft a tool for you.
-              </p>
-              <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-8">
-                <p className="text-xs text-amber-800 font-medium leading-relaxed text-left">
-                  Note: Your tool history exists only for this current session. You can use the Export feature to
-                  download your tool drafts before you leave.
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="w-full py-3 text-white rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-900/20"
-                style={{ backgroundColor: PANO_NAVY }}
-              >
-                Let's get started
-              </button>
-            </div>
-          </div>
-        );
+      // Icons you used (matching your component names)
+      const Search = (p) => <LucideIcon name="search" {...p} />;
+      const ChevronRight = (p) => <LucideIcon name="chevron-right" {...p} />;
+      const ChevronDown = (p) => <LucideIcon name="chevron-down" {...p} />;
+      const Home = (p) => <LucideIcon name="home" {...p} />;
+      const Copy = (p) => <LucideIcon name="copy" {...p} />;
+      const Check = (p) => <LucideIcon name="check" {...p} />;
+      const Info = (p) => <LucideIcon name="info" {...p} />;
+      const Menu = (p) => <LucideIcon name="menu" {...p} />;
+      const X = (p) => <LucideIcon name="x" {...p} />;
+      const BookOpen = (p) => <LucideIcon name="book-open" {...p} />;
+      const Users = (p) => <LucideIcon name="users" {...p} />;
+      const Target = (p) => <LucideIcon name="target" {...p} />;
+      const Calendar = (p) => <LucideIcon name="calendar" {...p} />;
+      const BarChart = (p) => <LucideIcon name="bar-chart-3" {...p} />;
+      const FileText = (p) => <LucideIcon name="file-text" {...p} />;
+      const School = (p) => <LucideIcon name="school" {...p} />;
+      const GraduationCap = (p) => <LucideIcon name="graduation-cap" {...p} />;
+      const ArrowLeft = (p) => <LucideIcon name="arrow-left" {...p} />;
+      const Heart = (p) => <LucideIcon name="heart" {...p} />;
+      const Brain = (p) => <LucideIcon name="brain" {...p} />;
+      const TrendingUp = (p) => <LucideIcon name="trending-up" {...p} />;
+      const Tag = (p) => <LucideIcon name="tag" {...p} />;
+      const Wand2 = (p) => <LucideIcon name="wand-2" {...p} />;
+      const Sparkles = (p) => <LucideIcon name="sparkles" {...p} />;
+      const Loader2 = (p) => <LucideIcon name="loader-circle" {...p} />;
+      const Lightbulb = (p) => <LucideIcon name="lightbulb" {...p} />;
+      const History = (p) => <LucideIcon name="history" {...p} />;
+      const FileEdit = (p) => <LucideIcon name="file-pen-line" {...p} />;
+      const Download = (p) => <LucideIcon name="download" {...p} />;
+
+      // =========================
+      // PASTE YOUR CODE BELOW
+      // Delete your imports + export default first
+      // =========================
+
+      // --- PASTE START ---
+
+      // (paste your 500+ lines here)
+
+      // --- PASTE END ---
+
+      try {
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+      } catch (err) {
+        const box = document.getElementById("errorBox");
+        box.style.display = "block";
+        box.textContent =
+          "JS Error:\n\n" + (err && err.stack ? err.stack : String(err));
+        throw err;
       }
-
-      // NOTE: Paste your ToolCard, ToolBuilderView, and full App exactly as-is here.
-      // (Too long to reprint the entire rest of your code in this message without risking mistakes.)
-      // ========= PASTE YOUR REMAINING COMPONENTS + App HERE =========
-
-      // TEMP: minimal placeholder so this file runs even before you paste everything
-      function App() {
-        return (
-          <div className="p-8">
-            <h1 className="text-2xl font-bold" style={{ color: PANO_NAVY }}>
-              Paste the rest of your App code below the placeholders
-            </h1>
-            <p className="mt-2 text-slate-600">
-              You already have it. Just remove imports and export, then paste.
-            </p>
-          </div>
-        );
-      }
-
-      // Render
-      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
     </script>
   </body>
 </html>
