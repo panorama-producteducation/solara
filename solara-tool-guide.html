@@ -12,7 +12,7 @@
       - Clipboard: Implemented dual-layer copy logic (navigator.clipboard + execCommand).
       - Root: Added div#root and ReactDOM.createRoot for React 18 rendering.
       - FIX: Fixed "removeChild" error by using refs for Lucide icon injection.
-      - UPDATE: Synchronized APP_DATA with the Solara Master Tool List (37 tools total).
+      - UPDATE: Synchronized APP_DATA with the Verbatim Master Tool List (37 tools total).
     -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -143,32 +143,32 @@
                     {
                         title: "MTSS Meeting Agenda Creator",
                         category: "Student Support",
-                        description: "Creates a structured agenda for school-based MTSS meetings, including discussion topics and student updates.",
+                        description: "Creates a structured agenda for school-based MTSS meetings, including discussion topics, student updates, and decision-making protocols tailored to the tiered support process.",
                         prompt: "Generate a detailed MTSS meeting agenda for a Tier 2/3 team working in a K-12 setting. Include Agenda Sections with recommended time allocations (e.g., welcome, student updates, intervention review, new referrals, action planning), Key Discussion Items for both academic and behavioral supports, Student Update Format (student name/ID, current tier, progress toward goals, next steps), Facilitator Prompts for guiding discussion toward data-driven decisions, and Action Items Section with responsible party and due dates. Present the agenda in a professional, educator-facing format with headings, bullet points, and suggested timing for a 45-60 minute meeting.",
-                        knowledge: ["MTSS meeting protocols", "Role-specific responsibilities"],
-                        fields: ["Meeting type", "List of students", "Duration", "Roles"]
+                        knowledge: ["MTSS meeting protocols", "Role-specific responsibilities (e.g., facilitator, recorder)"],
+                        fields: ["Meeting type (Tier 2 or Tier 3)", "List of students to discuss", "Meeting duration", "Team member roles", "Notes from previous meetings (optional)"]
                     },
                     {
                         title: "Individualized Behavior Plan Assistant",
                         category: "Student Support",
                         description: "Generates detailed, asset-based behavior intervention plans for students needing additional behavioral support.",
-                        prompt: "Draft a student-centered, asset-based behavior intervention plan for a K-12 student, aligned to evidence-based practices and adaptable to most district templates. Structure the plan into the following sections: Student Strengths & Interests (2-3 bullet points), Identified Behavioral Need (clear, non-deficit language), Specific Behavioral Goals (SMART format), Intervention Strategies (tiered supports, positive reinforcement, skill-building activities), Progress Monitoring Plan (data points, frequency, responsible party), and Family/Community Involvement strategies.",
+                        prompt: "Draft a student-centered, asset-based behavior intervention plan for a K-12 student, aligned to evidence-based practices and adaptable to most district templates. Structure the plan into the following sections: Student Strengths & Interests (2-3 bullet points), Identified Behavioral Need (clear, non-deficit language), Specific Behavioral Goals (SMART format), Intervention Strategies (tiered supports, positive reinforcement, skill-building activities), Progress Monitoring Plan (data points, frequency, responsible party), and Family/Community Involvement strategies. Ensure all language is strengths-based, avoids stigmatizing terms, and is formatted for ease of integration into a district BIP template.",
                         knowledge: ["District BIP templates", "FBA/BIP frameworks", "PBIS strategies"],
-                        fields: ["Target behavior", "Strengths/interests", "Triggers", "Current supports"]
+                        fields: ["Target behavior", "Strengths/interests", "Triggers/antecedents", "Current supports in place", "Desired replacement behavior"]
                     },
                     {
                         title: "Student of Concern Form Generator",
                         category: "Student Support",
-                        description: "Complete a Student of Concern Form for MTSS documentation.",
-                        prompt: "Complete the Student of Concern Form for the selected student. Complete each page (all 5 pages) of the form and keep the original structure of the form. Only fill in information you have access to, leave anything you can't answer blank. Consider the following: Student Overview, Data-Based Problem Solving, Layered Continuum of Supports, Evidence-Based Practices, Family, School, and Community Partnering, and Action Plan. Suggest specific interventions, appropriate tiers, and responsible parties formatted as a table.",
-                        knowledge: ["Template student of concern form"],
-                        fields: ["Relevant data points", "Primary areas for goal-setting"]
+                        description: "Complete a Student of Concern Form for MTSS documentation",
+                        prompt: "Complete the Student of Concern Form for the selected student. Complete each page (all 5 pages) of the form and keep the original structure of the form. Only fill in information you have access to, leave anything you can't answer blank. Consider the following when generating insights and recommendations: Student Overview: Identify any performance trends in academics, behavior, and attendance. Data-Based Problem Solving: Analyze universal, targeted, and intensive data points to determine areas of concern. Layered Continuum of Supports: Recommend tiered interventions (Tier 1, Tier 2, Tier 3) based on data trends. Evidence-Based Practices: Suggest high-quality, research-backed interventions aligned with student needs. Family, School, and Community Partnering: Identify opportunities for collaboration to enhance support structures. Action Plan: Propose a step-by-step intervention plan, including progress monitoring methods and key stakeholders responsible for implementation. Student Data Input (Example Format): Name: [Student Name] Grade Level: [Grade] Academic Data: [Recent assessments, progress monitoring, subject strengths and weaknesses] Behavioral Data: [Office discipline referrals, teacher reports, behavioral observations] Attendance Data: [Absenteeism rate, tardies, patterns] Interventions Tried: [Previous strategies used and their effectiveness] Family/Community Engagement: [Existing partnerships, parental involvement]. For the first page identifying strengths and deficits, please format each strength, deficit, and attempted support as a bullet point under the header. On the last page under 'MTSS Agenda'- for the File Review section, please create a table under that header and populate the data for that student. You will need to populate the current grades and progress for each course that the student is in, as well as assessment data, academic supports currently in place, and teacher comments if available. For the Behavior Attendance section after that, please analyze the student's attendance data and identify any patterns. Also please summarize the student's behavior incident data. For the discussion notes on the last page, please populate details under the headers. For the question 'What barriers might be preventing success?', please analyze the student's data and identify any barriers this student may have in terms of academics, attendance, behavior, etc. For the question 'What specific intervention(s) can we implement or adjust next?', please suggest a research-based intervention strategy based on deficit's in the student's performance, prioritizing the greatest need for the individual student. For the question 'What tier of support is appropriate moving forward?', please recommend Tier 1+, Tier 2, or Tier 3 based on data and response to previous interventions, we want an unbiased recommendation for the student's MTSS tier placement. For the question 'Who is responsible for initiating and monitoring the next step(s)?', please make recommendations for the district team, identifying recommended next steps, and listing the people that should take these next steps, thinking about PLCs, MTSS teams within a school district, and student support teams within a school district. Please format this as a table.",
+                        knowledge: ["template student of concern form from your school or district"],
+                        fields: ["Relevant data points for concern", "Primary areas for goal-setting"]
                     },
                     {
                         title: "Student-Based Support Team Report Creator",
                         category: "Student Support",
-                        description: "Generate a comprehensive student report for SBST meetings that include attendance, behavior, and academic data from Panorama.",
-                        prompt: "Generate actionable insights that help the SBST team make informed decisions about student support and intervention strategies. Components Required: 1. Attendance Analysis; 2. Behavior and Discipline Review; 3. Academic Performance Summary; 4. Data Trends and Patterns; 5. Key Findings and Recommendations. Maintain a professional tone appropriate for educational team discussions.",
+                        description: "Generate a comprehensive student report for SBST meetings that include attendance, behavior, and academic data from Panorama to ensure consistent reporting across all schools.",
+                        prompt: "You are an expert educational data analyst helping Student-Based Support Teams (SBSTs) create comprehensive student reports for team meetings. Generate a detailed report using the selected student's Panorama data to support intervention planning and decision-making. Generate actionable insights that help the SBST team make informed decisions about student support and intervention strategies. Report Components Required: 1. Attendance Analysis (Current attendance percentage, Total absences and tardies, Attendance patterns and trends, Comparison to averages). 2. Behavior and Discipline Review (Documented incidents and interventions, Behavioral patterns, Disciplinary actions, Progress on behavioral goals). 3. Academic Performance Summary (Current grades, Assessment results, Academic trends, Areas of strength and concern). 4. Data Trends and Patterns (Connections between attendance, behavior, and academic performance, Timeline of changes, Seasonal patterns). 5. Key Findings and Recommendations (Summary of concerns, Areas needing immediate support, Strengths to build upon). Formatting Requirements: Structure the report professionally for easy review during SBST meetings. Use clear headings, highlight critical information, and include data summaries that inform intervention decisions. Maintain a professional tone appropriate for educational team discussions.",
                         knowledge: ["SBST Report Template", "District intervention benchmarks"],
                         fields: ["Reporting period", "Specific SBST Focus Area"]
                     }
@@ -186,34 +186,34 @@
                     {
                         title: "Attendance Contract Generator",
                         category: "Student Support",
-                        description: "Drafts personalized attendance improvement contracts that outline shared expectations, goals, and supports.",
-                        prompt: "Generate a student-centered attendance contract for a K-12 student that is collaborative, supportive, and solution-oriented. Structure the contract to include student information, expectations, support strategies, shared commitments, and review dates. Ensure the language is positive, encouraging, and non-punitive.",
-                        knowledge: ["District attendance contract templates", "Tiered intervention guidance"],
-                        fields: ["Identified barriers", "Family engagement preferences", "Suggested support", "Timeframe"]
+                        description: "Drafts personalized attendance improvement contracts that outline shared expectations, goals, and supports between the student, family, and school.",
+                        prompt: "Generate a student-centered attendance contract for a K-12 student that is collaborative, supportive, and solution-oriented. Structure the contract to include student information (name, grade, date), attendance expectations (clear, measurable targets), support strategies (school-based supports, family involvement, community resources), shared commitments (student, family, and school responsibilities), and review and check-in dates. Ensure the language is positive, encouraging, and non-punitive, emphasizing partnership and shared goals. Format for easy printing and signing.",
+                        knowledge: ["District attendance contract templates", "Tiered intervention guidance", "Family-school partnership best practices"],
+                        fields: ["Identified barriers", "Family engagement preferences", "Suggested support strategies", "Contract timeframe"]
                     },
                     {
                         title: "Attendance Data Summary Tool",
                         category: "Student Support",
-                        description: "Summarizes patterns in attendance data for individual students or groups.",
-                        prompt: "Summarize attendance trends and risk factors over a defined time period. Include overall attendance rate, patterns (such as chronic absenteeism), identified risk factors (academic, behavioral, health, etc.), equity considerations, and actionable next steps.",
-                        knowledge: ["Local definitions for risk"],
+                        description: "Summarizes patterns in attendance data for individual students, homerooms, or grade levels, highlighting trends and risk areas.",
+                        prompt: "Summarize attendance trends and risk factors for a specified K-12 student or student group over a defined time period (for example, last 30 days, semester, or school year). Include overall attendance rate (percentage, number of days present/absent), patterns and trends (such as chronic absenteeism, frequent late arrivals, seasonal dips), identified risk factors (academic, behavioral, health, transportation, engagement), equity considerations (contextual or systemic factors impacting attendance), and actionable next steps for intervention and support. Present the summary in a clear, educator-friendly table or bullet format with key takeaways highlighted.",
+                        knowledge: ["Local definitions for risk (e.g., early warning indicators)"],
                         fields: ["Time period"]
                     },
                     {
                         title: "Attendance Celebration Note Creator",
                         category: "Student Engagement",
-                        description: "Generates positive notes or certificates for students with strong or improving attendance.",
-                        prompt: "Create a personalized celebration note recognizing attendance improvement. Use a warm, encouraging tone reflecting grade level. Reference specific progress and end with a personal sign-off.",
-                        knowledge: ["School values", "Recognition messaging exemplars"],
-                        fields: ["Attendance progress", "Preferred tone"]
+                        description: "Automatically generates positive notes or certificates for students with strong or improving attendance to support a strengths-based approach.",
+                        prompt: "Create a personalized celebration note recognizing a K-12 student's attendance improvement over a defined period (for example, last month, quarter, or semester). Use a warm, encouraging tone that reflects the student's grade level. Reference specific progress (such as days attended or improvement percentage), include a positive message of encouragement for continued success, and end with a personal sign-off (such as teacher name, principal, or attendance team). Format in short paragraph form suitable for printing or sending digitally.",
+                        knowledge: ["School values", "Examples of recognition messaging"],
+                        fields: ["Attendance progress or milestone", "Preferred tone"]
                     },
                     {
                         title: "School Based Attendance Team Meeting Prep",
                         category: "Student Support",
-                        description: "Prepares a one-pager summary for weekly attendance team meetings.",
-                        prompt: "Create a prep sheet summarizing student attendance concerns and proposed action steps. Include a student information table, key concerns (chronic absenteeism, tardiness), contributing factors, current interventions, and recommended next steps with assigned parties.",
+                        description: "Prepares a one-pager summary for weekly attendance team meetings, including student updates, action items, and discussion prompts.",
+                        prompt: "Create a school-based attendance team meeting prep sheet for a K-12 setting that summarizes student attendance concerns and proposed action steps. Include a student information table (name, grade, current attendance rate, tier of support), key concerns (data-based patterns such as chronic absenteeism, tardiness trends, or extended absences), possible contributing factors (academic, behavioral, health, family, transportation), current interventions in place, and recommended next steps with assigned responsible parties and timelines. Ensure all language is neutral, supportive, and solutions-focused, avoiding deficit framing. Format for easy printing and use during meetings.",
                         knowledge: ["Attendance team meeting structure", "Sample agenda"],
-                        fields: ["Meeting date", "Students of concern", "Prior notes"]
+                        fields: ["Meeting date", "Students of concern", "Notes from prior meeting"]
                     }
                 ]
             },
@@ -230,41 +230,41 @@
                         title: "Lesson Re-Teach Plan Generator",
                         category: "Instructional Planning",
                         description: "Supports teachers in creating re-teach plans for students who struggled with specific concepts.",
-                        prompt: "Design a re-teach plan for a K-12 lesson targeting students who have not yet mastered a specific concept. Include learning objective, evidence of gaps, adjustments, scaffolded activities, differentiation, and formative assessment methods.",
-                        knowledge: ["Standards", "Curriculum scope and sequence"],
-                        fields: ["Concept needing re-teach", "Misconceptions", "Group size", "Instructional format", "Available time"]
+                        prompt: "Design a re-teach plan for a K-12 lesson targeting students who have not yet mastered a specific concept. Include the learning objective, summary of the original lesson, evidence of gaps in understanding, instructional adjustments for re-teaching, scaffolded activities, differentiation strategies for varied readiness levels, and formative assessment methods to measure progress. Ensure the tone is strengths-based and focused on growth, and format the plan so it can be easily implemented by a classroom teacher.",
+                        knowledge: ["State/district standards", "Curriculum scope and sequence", "Data interpretation best practices"],
+                        fields: ["Concept/standard needing re-teach", "Common errors or misconceptions", "Group size", "Instructional format (e.g., small group, station)", "Available instructional time"]
                     },
                     {
                         title: "Rubric Generator",
                         category: "Instructional Planning",
-                        description: "Builds grading rubrics aligned to standards, success criteria, and assignment goals.",
-                        prompt: "Generate a detailed rubric for a K-12 assignment with four performance levels. Ensure criteria reflect essential skills from the standard and are written in student-friendly language. Format as a table.",
-                        knowledge: ["Rubric examples", "District grading policies"],
-                        fields: ["Assignment description", "Points", "Objectives", "Levels", "Success criteria"]
+                        description: "Builds grading rubrics aligned to standards, success criteria, and assignment goals. Teachers can specify performance levels and descriptors.",
+                        prompt: "Generate a detailed rubric for a K-12 assignment, fully aligned to the provided learning standard and assignment description. Include four performance levels with clear, observable descriptors for each criterion. Ensure the criteria reflect the essential skills and knowledge from the standard and are written in student-friendly language. Format the rubric in a table with performance levels across the top and criteria down the side, ensuring descriptors are objective, equitable, and measurable.",
+                        knowledge: ["Standards-aligned rubric examples", "District grading policies"],
+                        fields: ["Assignment description", "Number of points", "Learning objectives", "Performance levels", "Success criteria"]
                     },
                     {
                         title: "UDL Strategy Generator",
                         category: "Instructional Planning",
-                        description: "Suggests UDL-aligned strategies to help teachers differentiate lessons.",
-                        prompt: "Recommend UDL strategies across three principles: multiple means of representation, engagement, and action/expression. Align each strategy to the lesson objective and include implementation examples.",
+                        description: "Suggests UDL-aligned strategies to help teachers differentiate lessons based on student needs, accessibility, and engagement considerations.",
+                        prompt: "Recommend Universal Design for Learning strategies for a specific K-12 lesson, ensuring support for students with varied strengths, needs, and learning preferences. Provide strategies across all three UDL principles: multiple means of representation, multiple means of engagement, and multiple means of action and expression. Align each strategy to the lesson objective and include examples of how it could be implemented in practice. Ensure recommendations are inclusive, asset-based, and adaptable to general education classrooms.",
                         knowledge: ["UDL framework"],
-                        fields: ["Lesson goal", "Learner needs", "Modalities", "Materials"]
+                        fields: ["Lesson goal or activity", "Known learner needs", "Preferred modalities (e.g., visual, auditory)", "Materials available"]
                     },
                     {
                         title: "DOK Questions",
                         category: "Instructional Planning",
-                        description: "Analyzes reading passages or articles and crafts Depth of Knowledge (DOK) questions.",
-                        prompt: "Analyze any uploaded documents and generate depth of knowledge questions across all four levels of the DOK framework. For every question, list: (a) the question, (b) the target cognitive skill, and (c) a suggested response type.",
-                        knowledge: ["Reading passages", "DOK Framework Guide"],
-                        fields: ["Grade Level", "Subject Area"]
+                        description: "Analyzes any uploaded reading passages or articles and instantly crafts Depth of Knowledge (DOK) questions to spark rigorous student thinking. Upload a reading passage or article.",
+                        prompt: "Analyze any uploaded documents and generate depth of knowledge questions for an educator to use with their students. The goal is to help educators create cognitively engaging and standards-aligned questions that reflect all four levels of the DOK framework: DOK 1 (recall and reproduction); DOK 2 (skill/concept application); DOK 3 (strategic thinking and reasoning), and; DOK 4 (extended thinking). For every question, list: (a) the question itself (stand-alone, grade-appropriate), (b) the target cognitive skill, and (c) a suggested response type (e.g., multiple choice, short answer, essay, project). Make questions tightly aligned to the document, use age-appropriate language, and avoid copying text verbatim unless essential for clarity.",
+                        knowledge: ["Reading passages", "Articles", "DOK Framework Guide"],
+                        fields: ["Target Grade Level", "Subject Area"]
                     },
                     {
                         title: "Text Re-Leveler",
                         category: "Instructional Planning",
-                        description: "Adapts grade-level texts to increase accessibility through vocabulary support, scaffolds, and chunking.",
-                        prompt: "As a Literacy Specialist, adapt complex texts. Provide: 1. A simplified version maintaining high-level concepts; 2. Strategic scaffolds (context clues/definitions); 3. Logical 'chunks' with guiding questions.",
-                        knowledge: ["Lexile frameworks", "Vocabulary tier guides"],
-                        fields: ["Grade Level", "Focus Vocabulary", "Chunking Preference"]
+                        description: "Adapts grade-level texts to increase accessibility through vocabulary support, strategic scaffolds, and chunking while preserving core meaning and academic rigor.",
+                        prompt: "You are an expert Literacy Specialist and Instructional Designer. Your mission is to adapt complex grade-level texts to make them more accessible for diverse learners without compromising academic rigor or core meaning. Analyze the provided text and provide: 1. A simplified version of the text that maintains high-level concepts and academic vocabulary; 2. Strategic scaffolds such as context clues or student-friendly definitions for difficult terms; 3. Logical 'chunks' with guiding questions for each section to support active comprehension. Ensure the tone is academic yet accessible, focusing on removing barriers to understanding while preserving the text's original purpose and rigor.",
+                        knowledge: ["Lexile/Grade-level frameworks", "Vocabulary tier guides", "Scaffolding exemplars"],
+                        fields: ["Target Grade Level", "Focus Vocabulary to Retain", "Chunking Preference"]
                     }
                 ]
             },
@@ -279,43 +279,43 @@
                 tools: [
                     {
                         title: "Career Pathway Exploration Tool",
-                        category: "Student Engagement",
-                        description: "Matches students with potential career pathways based on interests and strengths.",
-                        prompt: "Recommend career pathways aligned to a recognized career cluster framework. Include rationale, potential occupations, and examples of postsecondary programs or certifications.",
-                        knowledge: ["Career inventories", "State career clusters"],
-                        fields: ["Interests", "Strengths", "Working style", "Post-grad goals"]
+                        category: "Student Engagement / Student Support",
+                        description: "Matches students with potential career pathways based on their interests, strengths, and academic profiles.",
+                        prompt: "Recommend career pathways for a K-12 student based on their documented interests and academic strengths. Align recommendations to a recognized career cluster framework such as the 16 Career Clusters or state equivalents. Include a brief rationale for each suggested pathway, potential related occupations, and examples of postsecondary programs or certifications. Ensure recommendations are inclusive, reflect diverse opportunities, and avoid assumptions based on demographic factors.",
+                        knowledge: ["Career interest inventories", "State career clusters/pathways"],
+                        fields: ["Student interests", "Strengths/skills", "Preferred working style", "Post-grad goals"]
                     },
                     {
                         title: "College and Postsecondary Exploration Generator",
-                        category: "Student Engagement",
-                        description: "Provides a tailored list of postsecondary institutions based on student profiles.",
-                        prompt: "Create a list of best-fit colleges or options considering academic profile, interests, location, environment, and financial factors. Include brief descriptions highlighting selectivity and unique supports.",
-                        knowledge: ["College match criteria", "FAFSA info"],
-                        fields: ["Location", "Interests", "Financial need", "School type"]
+                        category: "Student Engagement / Student Support",
+                        description: "Provides a tailored list of postsecondary institutions (2-year, 4-year, trade schools) based on student profiles and preferences.",
+                        prompt: "Create a list of best-fit colleges or postsecondary options for a K-12 student, considering their academic profile, career interests, preferred geographic location, learning environment preferences (for example, campus size, urban/rural setting), and financial considerations. Include a brief description for each option highlighting relevant programs, admissions selectivity, and unique supports or opportunities. Ensure recommendations include a diverse range of accessible options that align with the student's goals and circumstances.",
+                        knowledge: ["College match criteria (selectivity, affordability, etc.)", "FAFSA/financial aid info"],
+                        fields: ["Location preferences", "Career interests", "Financial aid need", "School type preferences"]
                     },
                     {
                         title: "Letter of Recommendation Generator",
-                        category: "Student Engagement",
-                        description: "Drafts personalized letters of recommendation for students.",
-                        prompt: "Write a formal letter highlighting academic achievements, personal strengths, and unique contributions. Include specific anecdotes and maintain a professional, authentic tone.",
-                        knowledge: ["Effective letter exemplars", "District formatting"],
-                        fields: ["Relationship", "Strengths", "Accomplishments", "Target program", "Tone"]
+                        category: "Student Engagement / Student Support",
+                        description: "Drafts personalized letters of recommendation for students applying to college, internships, or scholarships, based on educator inputs and district formatting preferences.",
+                        prompt: "Write a formal letter of recommendation for a K-12 student applying to college or a postsecondary program. Highlight the student's academic achievements, personal strengths, leadership or community involvement, and unique contributions. Include specific anecdotes or examples that illustrate these qualities. Maintain a professional, positive, and authentic tone aligned with college admissions expectations. Conclude with a strong endorsement and a formal sign-off including recommender's name, title, and contact information. Avoid comparative language that may disadvantage other students.",
+                        knowledge: ["Exemplars of effective recommendation letters", "District/school formatting guidance"],
+                        fields: ["Relationship to recommender", "Academic and personal strengths", "Key accomplishments", "Target program or college", "Tone preference"]
                     },
                     {
                         title: "PoG Improvement Plan",
-                        category: "Student Support",
-                        description: "Creates a 12-week improvement plan to help support Portrait of a Graduate skills.",
-                        prompt: "As a PoG Success Coach, create a 12-week roadmap focused on core competencies. Include actionable interventions, weekly tracking, and milestone checks.",
-                        knowledge: ["PoG competencies", "Intervention guides"],
-                        fields: ["Target Competency", "Baseline", "Vision"]
+                        category: "Student Engagement / Student Support",
+                        description: "This tool creates a 12-week improvement plan to help support these skills with actionable interventions and tracking to help students meet their goals and highest potential.",
+                        prompt: "You are a Portrait of a Graduate (PoG) Success Coach. Your mission is to create a detailed 12-week improvement plan for a student focused on core PoG competencies. Analyze the student's current skill levels and strengths to identify specific growth opportunities. Develop a structured 12-week roadmap that includes actionable interventions, weekly tracking mechanisms, and milestone checks. Ensure all recommendations are supportive, asset-based, and designed to help the student reach their highest potential in both academic and social-emotional domains.",
+                        knowledge: ["Portrait of a Graduate competencies", "Intervention strategies guide", "Progress tracking templates"],
+                        fields: ["Target Competency (e.g., Communication)", "Current Performance Baseline", "Student Long-Term Vision"]
                     },
                     {
                         title: "CTE Meeting Agenda Planner",
                         category: "Instructional Planning",
-                        description: "Generate personalized meeting agendas for school counselors to support CTE pathway planning.",
-                        prompt: "As a CTE Specialist, generate a structured agenda covering pathway progress, industry certifications, course selection, and work-based learning opportunities. Provide counselor talking points.",
-                        knowledge: ["CTE sequences", "Certification requirements"],
-                        fields: ["Career Interests", "CTE Credits", "Industry Certification"]
+                        description: "Generate personalized meeting agendas for school counselors to support students with course selection and CTE pathway planning.",
+                        prompt: "You are a Career and Technical Education (CTE) Pathway Specialist. Your goal is to generate a personalized meeting agenda for school counselors to use during student planning sessions. Based on student career interests and academic history, generate a structured agenda that covers: 1. Review of current pathway progress; 2. Alignment with industry-recognized certifications; 3. Course selection for the upcoming semester, and; 4. Discussion of work-based learning or internship opportunities. Provide talking points that help the counselor facilitate an informed and supportive conversation about the student's future.",
+                        knowledge: ["CTE Pathway course sequences", "Industry certification requirements", "Counseling conversation protocols"],
+                        fields: ["Student Career Interests", "Completed CTE Credits", "Target Industry Certification"]
                     }
                 ]
             },
@@ -331,26 +331,26 @@
                     {
                         title: "Parent/Teacher Conference Prep Tool",
                         category: "Family Engagement",
-                        description: "Summarizes strengths and growth areas to prepare educators for effective conferences.",
-                        prompt: "Generate a conference prep sheet with jargon-free, asset-based language. Include sections for strengths, concerns (with supportive framing), progress, and suggested next steps.",
-                        knowledge: ["Communication best practices", "Sample agenda"],
-                        fields: ["Length", "Interests", "Comm preferences"]
+                        description: "Summarizes strengths, growth areas, and family engagement tips for each student to prepare educators for effective and positive conferences.",
+                        prompt: "Generate a parent-teacher conference preparation sheet for a K-12 student that includes strengths, areas for growth, and family-facing talking points. Use clear, jargon-free language that is positive, asset-based, and easy for families to understand. Organize the sheet into sections for student strengths, current concerns (with supportive framing), progress toward goals, and suggested next steps. Include prompts or questions to encourage family input and collaboration.",
+                        knowledge: ["Family communication best practices", "Sample agenda"],
+                        fields: ["Conference length", "Strengths/interests", "Family communication preferences"]
                     },
                     {
                         title: "Family Update Generator",
                         category: "Family Engagement",
-                        description: "Drafts regular, personalized updates to families about student progress.",
-                        prompt: "Create a biweekly family update summarizing highlights, current focus, next steps, and home support tips. Keep the tone friendly and collaborative.",
-                        knowledge: ["Newsletter examples"],
-                        fields: ["Highlights", "Growth areas", "Home support", "Upcoming events"]
+                        description: "Drafts regular, personalized updates to families about student progress, upcoming events, or ways to support learning at home.",
+                        prompt: "Create a biweekly family update for a K-12 student that summarizes academic progress, strengths, and next steps for learning. Use clear, friendly, and strengths-focused language that avoids educational jargon. Organize the update into short sections: recent highlights, current learning focus, next steps, and how families can support at home. Keep the tone encouraging and collaborative.",
+                        knowledge: ["Examples of family newsletters/messages", "Upcoming important dates", "Suggested home activities"],
+                        fields: ["Student progress highlights", "Areas for growth", "Home support suggestions", "Upcoming events or deadlines"]
                     },
                     {
                         title: "Family Event Invitation Writer",
                         category: "Family Engagement",
-                        description: "Drafts inclusive invitations to upcoming school events.",
-                        prompt: "Write an invitation that encourages participation. Include details on purpose, time, and location using welcoming language. Include logistical details like childcare or translation if applicable.",
-                        knowledge: ["Event templates", "Community partnership tips"],
-                        fields: ["Event details", "Audience", "Purpose", "RSVP"]
+                        description: "Drafts inclusive, multilingual invitations to upcoming school events, including why the event matters and how families can participate.",
+                        prompt: "Write an invitation for a K-12 school family event that encourages attendance and active participation. Include the event name, date, time, location, and a brief description of the purpose and activities. Use warm, inclusive, and welcoming language that conveys the value of attending for both students and families. If applicable, include details about childcare, translation, or transportation supports. End with a clear call to action to RSVP or attend.",
+                        knowledge: ["Event communication templates", "Community partnership tips"],
+                        fields: ["Event details (who, what, when, where)", "Audience", "Purpose", "RSVP or sign-up info"]
                     }
                 ]
             },
@@ -366,26 +366,26 @@
                     {
                         title: "PD Session Designer",
                         category: "Instructional Planning",
-                        description: "Helps coaches quickly create agendas and slide outlines for PD sessions.",
-                        prompt: "Design a detailed 60-minute PD agenda. Include objectives, minute-by-minute activities, assessment tool examples, and discussion prompts. Balance research with practical application.",
-                        knowledge: ["Adult Learning Theory", "District Priorities"],
-                        fields: ["Topic", "Audience", "Length", "Outcomes"]
+                        description: "Helps coaches or administrators quickly create agendas and slide outlines for professional development sessions aligned to adult learning principles.",
+                        prompt: "Design a detailed 60-minute professional development session agenda for educators on formative assessment strategies. Include session objectives, a minute-by-minute agenda, interactive activities, examples of assessment tools, and discussion prompts. Ensure the agenda balances research-based content with practical classroom applications and includes opportunities for participant reflection and collaboration.",
+                        knowledge: ["District Adult Learning Theory", "Common PD Format", "District Priorities"],
+                        fields: ["Topic", "Audience", "Length", "Desired Outcomes"]
                     },
                     {
                         title: "Teacher Goal Reflection Tool",
                         category: "Instructional Planning",
-                        description: "Supports educators in reflecting on progress toward professional goals.",
-                        prompt: "Write a reflection summary on goal progress. Include evidence, strengths observed, challenges, and next steps. Maintain a constructive, strengths-based tone.",
-                        knowledge: ["Evaluation rubrics", "Growth goal structures"],
-                        fields: ["Goal statement", "Progress notes", "Artifacts", "Timeframe"]
+                        description: "Supports educators in reflecting on progress toward individual or schoolwide professional goals with prompts and synthesis language.",
+                        prompt: "Write a reflection summary on a teacher's progress toward their professional goal within a given timeframe. Include evidence of progress, strengths observed, challenges encountered, and next steps. Maintain a constructive, strengths-based tone that supports professional growth and aligns with coaching or evaluation frameworks.",
+                        knowledge: ["Teacher evaluation rubrics", "Common growth goal structures"],
+                        fields: ["Goal statement", "Progress notes", "Artifacts or examples", "Timeframe"]
                     },
                     {
                         title: "Coaching Cycle Summary Generator",
                         category: "Instructional Planning",
-                        description: "Drafts a summary of an instructional coaching conversation or cycle.",
-                        prompt: "Summarize the focus, actions, and next steps of a coaching cycle. Include strategies implemented and evidence of progress. Ensure the summary is concise and professional.",
-                        knowledge: ["Coaching models", "Feedback norms"],
-                        fields: ["Focus area", "Observed strengths", "Next steps", "Frequency"]
+                        description: "Drafts a summary of an instructional coaching conversation or cycle to share with teachers or store in a tracker.",
+                        prompt: "Summarize the focus, actions, and next steps from an instructional coaching cycle. Include the coaching goal, specific strategies implemented, evidence of progress, and agreed-upon next steps. Ensure the summary is concise, actionable, and written in a professional, strengths-based tone suitable for sharing with both the teacher and coaching supervisor.",
+                        knowledge: ["Instructional coaching models (e.g., Impact Cycle)", "Feedback language norms"],
+                        fields: ["Focus area", "Observed strengths", "Agreed next steps", "Coaching frequency"]
                     }
                 ]
             },
@@ -401,26 +401,26 @@
                     {
                         title: "School Improvement Plan (SIP) Builder",
                         category: "Instructional Planning",
-                        description: "Supports administrators in generating SIPs based on school data and district frameworks.",
-                        prompt: "Create a draft SIP including school profile, needs assessment summary, priority goals, action steps, and progress monitoring methods aligned to state priorities.",
-                        knowledge: ["SIP templates", "Strategic goals"],
+                        description: "Supports administrators in generating SIPs based on key school data, equity goals, and district frameworks.",
+                        prompt: "Create a draft school improvement plan for a K-12 school that includes a school profile, needs assessment summary (based on provided or assumed data), priority goals, evidence-based strategies, action steps, progress monitoring methods, and alignment to district and state priorities. Ensure the plan uses clear, professional language, incorporates equity-focused strategies, and is structured for presentation to school leadership and stakeholders.",
+                        knowledge: ["SIP templates", "State requirements", "District strategic goals"],
                         fields: ["Priority areas", "Stakeholder input", "Timeline"]
                     },
                     {
                         title: "Strategic Planning Snapshot Generator",
                         category: "Instructional Planning",
-                        description: "Creates a one-pager that synthesizes districtwide data and priorities.",
-                        prompt: "Generate a snapshot summarizing key performance data (achievement, equity, attendance) and progress toward goals. Conclude with stated strategic priorities and next steps.",
-                        knowledge: ["Vision statements"],
-                        fields: ["Audience", "Key priorities"]
+                        description: "Creates a one-pager that synthesizes districtwide data and priorities for planning retreats or leadership meetings.",
+                        prompt: "Generate a strategic planning snapshot for a K-12 district that summarizes key performance data, progress toward existing goals, and priority areas for improvement. Include a brief overview of student achievement, equity indicators, attendance, graduation rates, and other relevant metrics. Conclude with clearly stated strategic priorities and next steps aligned to the district's mission and vision.",
+                        knowledge: ["District vision statements"],
+                        fields: ["Audience (e.g., board, staff)", "Key priorities"]
                     },
                     {
                         title: "Grant Narrative Starter Tool",
                         category: "Instructional Planning",
-                        description: "Generates draft narratives for common grant applications.",
-                        prompt: "Draft a persuasive grant narrative describing the identified need, proposed strategy, expected outcomes, and alignment to district goals. Use compelling, strengths-based language.",
-                        knowledge: ["Grant structures"],
-                        fields: ["Project description", "Population", "Needs statement", "Activities", "Outcomes"]
+                        description: "Generates draft narratives for common grant applications, aligned to district initiatives, student needs, and evidence-based practices.",
+                        prompt: "Draft a persuasive grant narrative for a K-12 funding proposal that includes a clear description of the identified need (supported by relevant data), the proposed strategy or intervention, expected measurable outcomes, and explicit alignment to district goals and priorities. Use compelling, strengths-based language that emphasizes equity, community impact, and sustainability.",
+                        knowledge: ["Common grant structures and language"],
+                        fields: ["Project description", "Target student population", "Needs statement", "Planned activities", "Desired outcomes"]
                     }
                 ]
             },
@@ -436,42 +436,42 @@
                     {
                         title: "IEP Goal Writer",
                         category: "Student Support",
-                        description: "Generates clear, standards-aligned, and measurable IEP goals.",
-                        prompt: "Generate a measurable, standards-aligned IEP goal. Use SMART formatting, align to state standards, specify mastery criteria, and include a brief rationale.",
-                        knowledge: ["SMART frameworks", "Standards", "Compliance guidance"],
-                        fields: ["Focus area", "Timeframe", "Desired outcome"]
+                        description: "Generates clear, standards-aligned, and measurable IEP goals in academic, behavioral, or functional domains based on student needs and present levels.",
+                        prompt: "Generate a measurable, standards-aligned IEP goal for a K-12 student based on their current performance and identified area of need. Use SMART goal formatting, align the goal to the appropriate state or national standard, and include a brief rationale. Specify the criteria for mastery, method of measurement, and timeframe for achievement. Ensure the language is asset-based, clear, and educator-friendly.",
+                        knowledge: ["SMART goal frameworks", "State standards (e.g., Common Core)", "IEP compliance guidance"],
+                        fields: ["Area of focus (e.g., reading comprehension, behavior)", "Timeframe", "Desired outcome"]
                     },
                     {
                         title: "FBA Assistant",
                         category: "Student Support",
-                        description: "Guides educators through analyzing behavior data to identify patterns and functions.",
-                        prompt: "As a Behavior Analyst, analyze data to identify patterns and root causes. Draft clear, function-based statements (Escape, Attention, etc.) to inform intervention planning.",
-                        knowledge: ["Observation logs", "ABC data sheets"],
-                        fields: ["Target behavior", "Triggers", "Function"]
+                        description: "Guides educators through analyzing behavior data to identify patterns, hypothesize root causes, and draft clear, function-based statements to inform targeted intervention planning.",
+                        prompt: "You are a specialized Behavior Analyst. Analyze student behavioral data to identify patterns and determine hypothesized root causes. Draft clear, function-based summary statements that identify the purpose of the behavior (Escape, Attention, Tangible, or Sensory) and provide a professional hypothesis to inform targeted intervention planning.",
+                        knowledge: ["Behavior observation logs", "ABC data sheets", "Previous behavior assessments"],
+                        fields: ["Specific target behavior", "Observed triggers", "Perceived function"]
                     },
                     {
                         title: "Behavior Intervention Plan (BIP) Draft Generator",
                         category: "Student Support",
-                        description: "Creates structured, function-aligned behavior intervention plans.",
-                        prompt: "As a Behavior Specialist, generate a BIP that aligns with behavior function. Include proactive supports, replacement behaviors, and data-driven monitoring strategies.",
-                        knowledge: ["FBA", "District BIP Template"],
-                        fields: ["Function", "Replacement behavior", "Rewards"]
+                        description: "Creates structured, function-aligned behavior intervention plans with proactive supports, replacement behaviors, and progress-monitoring strategies tailored to student needs.",
+                        prompt: "You are an expert Behavior Specialist. Generate a structured Behavior Intervention Plan (BIP) that aligns specifically with a student's behavioral function. Include proactive classroom supports, specific instructions for teaching and modeling replacement behaviors, and clear strategies for data-driven progress monitoring.",
+                        knowledge: ["Completed FBA", "District BIP Template", "PBIS Strategy Guide"],
+                        fields: ["Hypothesized behavior function", "Targeted replacement behavior", "Key rewards or motivators"]
                     },
                     {
                         title: "Parent SPED Summary",
                         category: "Student Support",
-                        description: "Translates evaluation results and service plans into family-friendly summaries.",
-                        prompt: "As a SPED Liaison, translate technical findings and service plans into clear, asset-based language for parents to promote meaningful collaboration.",
-                        knowledge: ["Evaluation reports", "Current IEP"],
-                        fields: ["Evaluation findings", "Service areas", "Partnership focus"]
+                        description: "Translates evaluation results, service plans, and progress data into clear, family-friendly summaries that promote understanding and meaningful collaboration.",
+                        prompt: "You are a Special Education Liaison. Translate complex student evaluation results, IEP service plans, and progress data into clear, family-friendly language. Focus on student strengths and making technical findings accessible to parents to promote meaningful understanding and collaborative school-home partnership.",
+                        knowledge: ["Evaluation reports (ER/RR)", "Current IEP", "Progress reporting templates"],
+                        fields: ["Primary evaluation findings", "Key service areas", "Focus for home-school partnership"]
                     },
                     {
                         title: "IEP at a Glance Generator",
                         category: "Student Support",
-                        description: "Generates a concise summary of a student's IEP accommodations and goals.",
-                        prompt: "Generate an IEP at a Glance summary for teachers. Include eligibility, performance summary, annual goals, and accommodations/modifications. Keep it actionable.",
+                        description: "Generates a concise, educator-friendly summary of a student's IEP, including key accommodations, goals, services, and supports-layered with Panorama data for instructional context. Select a student and upload their IEP or related documents. Educators should thoroughly review and use professional judgement before implementing.",
+                        prompt: "Generate an IEP at a Glance summary for a K-12 student that provides a teacher with a quick reference to the student's key supports and goals. Include sections for student information, primary eligibility, current performance summary, annual goals, accommodations and modifications, and any relevant support services. Keep the summary concise, clear, and focused on actionable information for classroom implementation.",
                         knowledge: ["Example Template"],
-                        fields: ["Student name", "Accommodations", "Goals", "Strategies"]
+                        fields: ["Student name", "Key accommodations", "Primary goals", "Support strategies"]
                     }
                 ]
             },
@@ -487,34 +487,34 @@
                     {
                         title: "Assessment Data Analyzer",
                         category: "Instructional Planning",
-                        description: "Analyzes assessment results to identify learning gaps and groupings.",
-                        prompt: "Analyze assessment data to identify learning gaps, suggest flexible student groupings, and recommend targeted interventions aligned to learning objectives.",
-                        knowledge: ["Assessment frameworks", "Standards alignment"],
-                        fields: ["Assessment type", "Grade/subject", "Benchmarks", "Grouping"]
+                        description: "Analyzes assessment results to identify learning gaps, student groupings, and intervention recommendations based on performance patterns.",
+                        prompt: "Analyze assessment data for a K-12 class to identify learning gaps, suggest flexible student groupings, and recommend targeted interventions. Organize the analysis into three sections: learning gaps by standard or skill, suggested groupings with rationale, and recommended instructional strategies or interventions. Ensure recommendations are equitable, strengths-based, and aligned to standards and learning objectives.",
+                        knowledge: ["District assessment frameworks", "Standards alignment guides", "Intervention tier criteria"],
+                        fields: ["Assessment type", "Grade level/subject", "Performance benchmarks", "Grouping preferences"]
                     },
                     {
                         title: "Data Dashboard Summary Creator",
                         category: "Instructional Planning",
-                        description: "Creates executive summaries of key performance indicators and trends.",
-                        prompt: "Generate an executive summary of performance trends (academic, attendance, behavior, equity). Include achievements, concerns, and actionable recommendations for leadership.",
-                        knowledge: ["District KPIs", "Historical trend data"],
-                        fields: ["Time period", "Audience", "Metrics", "Groups"]
+                        description: "Creates executive summaries of key performance indicators and trends from district or school data dashboards for leadership meetings.",
+                        prompt: "Generate an executive summary of key performance trends from a K-12 district or school data dashboard. Include notable achievements, areas of concern, and significant changes over time. Organize the summary into sections for academic performance, attendance, behavior, and equity indicators, followed by 2-3 actionable recommendations for leadership consideration. Use concise, professional language suitable for leadership meetings.",
+                        knowledge: ["District KPIs and metrics", "Benchmark comparisons", "Historical trend data"],
+                        fields: ["Time period", "Audience level", "Priority metrics", "Comparison groups"]
                     },
                     {
                         title: "Student Progress Report Generator",
                         category: "Family Engagement",
-                        description: "Compiles individual student progress reports synthesizing multiple data points.",
-                        prompt: "Create a comprehensive progress report for families. Organize into strengths, recent progress, growth areas, and support steps. Use jargon-free language.",
-                        knowledge: ["Report templates", "Communication guidelines"],
-                        fields: ["Reporting period", "Data sources", "Strengths", "Preferences"]
+                        description: "Compiles individual student progress reports that synthesize multiple data points into family-friendly summaries with next steps.",
+                        prompt: "Create a comprehensive student progress report that combines academic, behavioral, and attendance data into a family-friendly summary. Organize the report into sections: student strengths, recent progress, areas for growth, and next steps for support. Use clear, jargon-free, and encouraging language that promotes collaboration between school and family.",
+                        knowledge: ["Report card templates", "Family communication guidelines", "Growth measurement standards"],
+                        fields: ["Reporting period", "Data sources to include", "Student strengths", "Family communication preferences"]
                     },
                     {
                         title: "Benchmark Assessment Prep Tool",
                         category: "Instructional Planning",
-                        description: "Helps teachers prepare students for upcoming assessments.",
-                        prompt: "Design a targeted review plan based on prior performance. Include prioritized content areas, suggested review activities, and differentiation strategies.",
-                        knowledge: ["Assessment blueprints", "Standards maps"],
-                        fields: ["Assessment date", "Subject", "Prior performance", "Prep time"]
+                        description: "Helps teachers prepare students for upcoming assessments by identifying focus areas and creating review materials based on prior performance.",
+                        prompt: "Design a targeted review plan for an upcoming K-12 benchmark assessment based on prior performance patterns and learning objectives. Include prioritized content areas, suggested review activities, time allocations, and differentiation strategies to support varied student readiness levels. Ensure the plan is strengths-based, engaging, and aligned to the assessment format.",
+                        knowledge: ["Assessment blueprints", "Standards coverage maps", "Review strategy best practices"],
+                        fields: ["Assessment date", "Subject/grade level", "Previous performance data", "Available prep time", "Student needs"]
                     }
                 ]
             }
