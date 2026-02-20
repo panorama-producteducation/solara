@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solara Tool Guide & Builder</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .animate-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICON WRAPPER FOR LUCIDE ---
+        const Icon = ({ name, color, className = "w-5 h-5", style = {} }) => {
+            const [IconComponent, setIconComponent] = useState(null);
+
+            useEffect(() => {
+                // Lucide names in the provided code use PascalCase (Search, Home, etc.)
+                if (window.lucide && window.lucide[name]) {
+                    setIconComponent(() => window.lucide[name]);
+                }
+            }, [name]);
+
+            if (!IconComponent) return <div className={className} style={{backgroundColor: '#eee', borderRadius: '4px'}}></div>;
+            
+            const Tag = IconComponent;
+            return <Tag color={color} className={className} style={style} />;
+        };
+
+        // BRAND COLORS CONSTANTS
+        const PANO_NAVY = "#161242";
+        const PANO_GREEN = "#1FAA4A";
+        const PANO_BLUE = "#006DB0"; 
+        const DARK_GRAY = "#333333"; 
+        const LIGHT_GRAY = "#EEEEEE"; 
+        const SECONDARY_TURQUOISE = "#108A7D";
+        const SECONDARY_TEAL = "#00A1BB";
+        const SECONDARY_LAVENDER = "#867EBB";
+        const SECONDARY_LIME = "#9FCC3B";
+
+        // --- GEMINI API UTILS ---
+        const apiKey = ""; // PASTE YOUR KEY HERE
+
+        const callGemini = async (userQuery, retryCount = 0) => {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            
+            const systemPrompt = `You are the Solara Custom Tool Assistant. Help educators design precise Custom Tools. GUIDELINES: 1. Plain text instructions only. 2. Clear Role Identity. 3. Choose category: Family Engagement, Instructional Planning, Student Engagement, Student Support. 4. No student names. Output MUST be valid JSON matching the schema.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: `Educator Need: ${userQuery}` }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { 
+                    responseMimeType: "application/json"
+                }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('API request failed');
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                return JSON.parse(text);
+            } catch (error) {
+                if (retryCount < 2) return callGemini(userQuery, retryCount + 1);
+                throw error;
+            }
+        };
+
+        // --- DATA STRUCTURES (Snippet of your provided data for brevity) ---
+        const APP_DATA = {
+            mtss: {
+                id: 'mtss',
+                title: "MTSS and Student Support Tools",
+                shortTitle: "MTSS Tools",
+                icon: <Icon name="Users" color={PANO_GREEN} />,
+                accent: SECONDARY_TURQUOISE,
+                description: "Develop multi-tiered support systems and interventions.",
+                summary: "Multi-tiered support systems, interventions, and student assistance.",
+                tools: [
+                    {
+                        title: "SMART Goal Generator",
+                        category: "Student Support",
+                        description: "Helps teachers create intervention-aligned SMART goals.",
+                        prompt: "Create a SMART goal for a student in the K–12 setting...",
+                        knowledge: ["SMART goal exemplars", "District guidance"],
+                        fields: ["Perceived need", "Domain", "Tier of support"]
+                    }
+                ]
+            },
+            instruction: {
+                id: 'instruction',
+                title: "Instruction and Curriculum Tools",
+                shortTitle: "Curriculum Tools",
+                icon: <Icon name="BookOpen" color={PANO_GREEN} />,
+                accent: SECONDARY_TEAL,
+                description: "Lesson planning and instructional strategies.",
+                summary: "Lesson planning and instructional strategies.",
+                tools: [
+                    {
+                        title: "UDL Strategy Generator",
+                        category: "Instructional Planning",
+                        description: "Suggests UDL-aligned strategies based on student needs.",
+                        prompt: "Recommend Universal Design for Learning strategies...",
+                        knowledge: ["UDL framework"],
+                        fields: ["Lesson goal", "Learner needs"]
+                    }
+                ]
+            }
+            // Add other categories here following the same pattern
+        };
+
+        // --- COMPONENTS ---
+
+        function TooltipModal({ isOpen, onClose, title, content }) {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative animate-in">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icon name="X" className="w-5 h-5"/></button>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-slate-100 rounded-lg"><Icon name="Lightbulb" style={{color: PANO_NAVY}}/></div>
+                            <h3 className="text-xl font-bold" style={{color: PANO_NAVY}}>{title}</h3>
+                        </div>
+                        <div className="text-slate-600 text-sm leading-relaxed">{content}</div>
+                        <button onClick={onClose} className="mt-6 w-full py-2 text-white rounded-xl font-semibold" style={{backgroundColor: PANO_NAVY}}>Got it</button>
+                    </div>
+                </div>
+            );
+        }
+
+        function ToolCard({ tool, categoryId, index, onCopy, onInfoClick, accentColor, initiallyExpanded = false }) {
+            const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
+            const [copyFeedback, setCopyFeedback] = useState(null);
+
+            const triggerCopy = (text, id) => {
+                onCopy(text);
+                setCopyFeedback(id);
+                setTimeout(() => setCopyFeedback(null), 2000);
+            };
+
+            const toolId = `${categoryId}-${index}`;
+            const fields = tool.fields || [];
+
+            return (
+                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm mb-4">
+                    <div className="p-6 cursor-pointer hover:bg-slate-50 flex justify-between items-center" onClick={() => setIsExpanded(!isExpanded)}>
+                        <div>
+                            <h3 className="text-xl font-bold" style={{color: PANO_NAVY}}>{tool.title}</h3>
+                            <p className="text-slate-600 text-sm mt-1">{tool.description}</p>
+                        </div>
+                        <Icon name="ChevronDown" className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    </div>
+                    {isExpanded && (
+                        <div className="p-6 border-t border-slate-100 bg-slate-50/30 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Instructions</span>
+                                    <button onClick={() => triggerCopy(tool.prompt || tool.instructions, toolId)} className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded">
+                                        {copyFeedback === toolId ? 'Copied!' : 'Copy'}
+                                    </button>
+                                </div>
+                                <div className="p-4 bg-white border rounded text-xs italic text-slate-700 whitespace-pre-wrap">"{tool.prompt || tool.instructions}"</div>
+                            </div>
+                            <div className="space-y-4">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fields</span>
+                                <ul className="space-y-2">
+                                    {fields.map((f, i) => <li key={i} className="text-xs text-slate-600 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-green-500"/>{f}</li>)}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const App = () => {
+            const [activeCategory, setActiveCategory] = useState(null);
+            const [activeView, setActiveView] = useState('home');
+            const [modalContent, setModalContent] = useState(null);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+            const handleCopy = (text) => {
+                navigator.clipboard.writeText(text);
+            };
+
+            const renderContent = () => {
+                if (activeView === 'builder') {
+                    return (
+                        <div className="animate-in">
+                            <h2 className="text-3xl font-bold mb-4" style={{color: PANO_NAVY}}>Tool Builder</h2>
+                            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                                <textarea className="w-full h-32 p-4 border rounded-xl mb-4" placeholder="Describe what you need..."></textarea>
+                                <button className="w-full py-4 text-white font-bold rounded-xl" style={{backgroundColor: PANO_NAVY}}>Draft My Tool ✨</button>
+                                <p className="text-xs text-center mt-4 text-slate-400">Note: API Key required in script to activate AI features.</p>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (activeCategory) {
+                    const cat = APP_DATA[activeCategory];
+                    return (
+                        <div className="animate-in">
+                            <button onClick={() => setActiveCategory(null)} className="mb-6 text-sm flex items-center gap-2 text-slate-500"><Icon name="ArrowLeft" className="w-4 h-4"/> Back</button>
+                            <h2 className="text-3xl font-bold mb-2">{cat.title}</h2>
+                            <p className="text-slate-600 mb-8">{cat.description}</p>
+                            {cat.tools.map((t, i) => <ToolCard key={i} tool={t} categoryId={cat.id} index={i} onCopy={handleCopy} />)}
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in">
+                        {Object.values(APP_DATA).map(cat => (
+                            <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="p-6 bg-white border border-slate-200 rounded-xl hover:shadow-md cursor-pointer transition-all">
+                                <div className="mb-4">{cat.icon}</div>
+                                <h3 className="text-xl font-bold mb-2" style={{color: PANO_NAVY}}>{cat.title}</h3>
+                                <p className="text-sm text-slate-600">{cat.summary}</p>
+                            </div>
+                        ))}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="flex min-h-screen bg-slate-50">
+                    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform`}>
+                        <div className="p-6 flex flex-col h-full">
+                            <h1 className="text-xl font-black mb-8" style={{color: PANO_NAVY}}>SOLARA TOOLKIT</h1>
+                            <nav className="space-y-2 flex-1">
+                                <button onClick={() => {setActiveView('home'); setActiveCategory(null); setIsSidebarOpen(false)}} className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-100 text-sm font-semibold">
+                                    <Icon name="Home" /> Home
+                                </button>
+                                <button onClick={() => {setActiveView('builder'); setIsSidebarOpen(false)}} className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-100 text-sm font-semibold">
+                                    <Icon name="Wand2" /> Tool Assistant
+                                </button>
+                            </nav>
+                        </div>
+                    </aside>
+
+                    <main className="flex-1 lg:ml-64 p-6 md:p-12">
+                        <header className="lg:hidden mb-6">
+                            <button onClick={() => setIsSidebarOpen(true)}><Icon name="Menu" className="w-8 h-8"/></button>
+                        </header>
+                        <div className="max-w-4xl mx-auto">
+                            {renderContent()}
+                        </div>
+                    </main>
+
+                    <TooltipModal isOpen={!!modalContent} onClose={() => setModalContent(null)} title={modalContent?.title} content={modalContent?.content} />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
