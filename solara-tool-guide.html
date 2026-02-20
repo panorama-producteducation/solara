@@ -7,11 +7,12 @@
     <!-- 
       TRANSFORMATION NOTES:
       - Removed Gemini API: Rebuilt Tool Assistant as a structured manual builder.
-      - Education Context: Replaced "Reflected in prompt logic" with specific K-12 file recommendations.
-      - Enhanced Logic: Assembles 2-sentence professional descriptions and Title Case names.
-      - UI Refinement: Removed redundant headers for a cleaner "Draft" view.
-      - Category Cleanup: Ensured every tool displays exactly one primary category.
-      - Icons: Fixed ref-based Lucide injection for stability.
+      - Filler Logic: Inputs like "na", "n/a", "test", or blank fields are ignored in assembly.
+      - UPDATED BUTTONS: "Export This Tool Draft" and "Export All Tool Drafts".
+      - Education Context: Specific K-12 file recommendations instead of generic logic.
+      - UI Refinement: Centered onboarding modal (max-w-2xl) and removed redundant headers.
+      - Category Cleanup: Ensured tools display exactly one primary category (no slashes).
+      - Data Accuracy: Updated Student of Concern knowledge requirements verbatim.
     -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -51,6 +52,24 @@
             );
         };
 
+        const isFiller = (val) => {
+            if (!val) return true;
+            const fillerWords = ['na', 'n/a', 'test', 'none', '.', '-'];
+            return fillerWords.includes(val.toLowerCase().trim());
+        };
+
+        const downloadTxt = (filename, text) => {
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        };
+
         // --- ICON HELPER ---
         const Icon = ({ name, className = "w-5 h-5", style = {} }) => {
             const spanRef = useRef(null);
@@ -72,13 +91,13 @@
             'Search', 'ChevronRight', 'ChevronDown', 'Home', 'Copy', 'Check', 'Info', 'Menu', 'X', 
             'BookOpen', 'Users', 'Target', 'Calendar', 'BarChart', 'FileText', 'School', 
             'GraduationCap', 'ArrowLeft', 'Heart', 'Brain', 'TrendingUp', 'Tag', 'Wand2', 
-            'Sparkles', 'Loader2', 'Lightbulb', 'History', 'FileEdit', 'Download', 'Paperclip'
+            'Sparkles', 'Loader2', 'Lightbulb', 'History', 'FileEdit', 'Download', 'Paperclip', 'FileDown'
         ];
         const Icons = {};
         iconNames.forEach(name => {
             Icons[name] = (props) => <Icon name={name} {...props} />;
         });
-        const { Search, ChevronRight, ChevronDown, Home, Copy, Check, Info, Menu, X, BookOpen, Users, Target, Calendar, BarChart, FileText, School, GraduationCap, ArrowLeft, Heart, Brain, TrendingUp, Tag, Wand2, Sparkles, Loader2, Lightbulb, History, FileEdit, Download, Paperclip } = Icons;
+        const { Search, ChevronRight, ChevronDown, Home, Copy, Check, Info, Menu, X, BookOpen, Users, Target, Calendar, BarChart, FileText, School, GraduationCap, ArrowLeft, Heart, Brain, TrendingUp, Tag, Wand2, Sparkles, Loader2, Lightbulb, History, FileEdit, Download, Paperclip, FileDown } = Icons;
 
         // BRAND COLORS CONSTANTS
         const PANO_NAVY = "#161242";
@@ -131,7 +150,7 @@
                         category: "Student Support",
                         description: "Complete a Student of Concern Form for MTSS documentation",
                         prompt: "Complete the Student of Concern Form for the selected student. Complete each page (all 5 pages) of the form and keep the original structure of the form. Only fill in information you have access to, leave anything you can't answer blank. Consider the following when generating insights and recommendations: Student Overview: Identify any performance trends in academics, behavior, and attendance. Data-Based Problem Solving: Analyze universal, targeted, and intensive data points to determine areas of concern. Layered Continuum of Supports: Recommend tiered interventions (Tier 1, Tier 2, Tier 3) based on data trends. Evidence-Based Practices: Suggest high-quality, research-backed interventions aligned with student needs. Family, School, and Community Partnering: Identify opportunities for collaboration to enhance support structures. Action Plan: Propose a step-by-step intervention plan, including progress monitoring methods and key stakeholders responsible for implementation. Student Data Input (Example Format): Name: [Student Name] Grade Level: [Grade] Academic Data: [Recent assessments, progress monitoring, subject strengths and weaknesses] Behavioral Data: [Office discipline referrals, teacher reports, behavioral observations] Attendance Data: [Absenteeism rate, tardies, patterns] Interventions Tried: [Previous strategies used and their effectiveness] Family/Community Engagement: [Existing partnerships, parental involvement]. For the first page identifying strengths and deficits, please format each strength, deficit, and attempted support as a bullet point under the header. On the last page under 'MTSS Agenda'- for the File Review section, please create a table under that header and populate the data for that student. You will need to populate the current grades and progress for each course that the student is in, as well as assessment data, academic supports currently in place, and teacher comments if available. For the Behavior Attendance section after that, please analyze the student's attendance data and identify any patterns. Also please summarize the student's behavior incident data. For the discussion notes on the last page, please populate details under the headers. For the question 'What barriers might be preventing success?', please analyze the student's data and identify any barriers this student may have in terms of academics, attendance, behavior, etc. For the question 'What specific intervention(s) can we implement or adjust next?', please suggest a research-based intervention strategy based on deficit's in the student's performance, prioritizing the greatest need for the individual student. For the question 'What tier of support is appropriate moving forward?', please recommend Tier 1+, Tier 2, or Tier 3 based on data and response to previous interventions, we want an unbiased recommendation for the student's MTSS tier placement. For the question 'Who is responsible for initiating and monitoring the next step(s)?', please make recommendations for the district team, identifying recommended next steps, and listing the people that should take these next steps, thinking about PLCs, MTSS teams within a school district, and student support teams within a school district. Please format this as a table.",
-                        knowledge: ["template student of concern form from your school or district"],
+                        knowledge: ["Template student of concern form from your school or district"],
                         fields: ["Relevant data points for concern", "Primary areas for goal-setting"]
                     },
                     {
@@ -517,7 +536,7 @@
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl max-sm w-full p-8 relative animate-in zoom-in-95 duration-200 text-center">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-12 relative animate-in zoom-in-95 duration-200 text-center">
                         <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"><Wand2 className="w-8 h-8" /></div>
                         <h3 className="text-xl font-bold mb-3 text-slate-900">Welcome to Tool Assistant</h3>
                         <p className="text-sm text-slate-600 leading-relaxed mb-6">This workspace helps you generate new tool ideas. Describe a task and follow the structural guide to draft your specification.</p>
@@ -677,25 +696,30 @@
             };
 
             const handleAssemble = () => {
-                if (!fields.challenge.trim()) return;
+                if (isFiller(fields.challenge)) return;
 
                 const rawTitle = fields.challenge.split('\n')[0].substring(0, 40);
                 const titleCased = toTitleCase(rawTitle);
 
+                const sanitizedUsers = isFiller(fields.users) ? 'educators' : fields.users;
+                const sanitizedVision = isFiller(fields.vision) ? 'streamlining instructional tasks' : fields.vision;
+                const sanitizedConstraints = isFiller(fields.constraints) ? '' : fields.constraints;
+                const sanitizedContext = isFiller(fields.context) ? '' : fields.context;
+
                 const assembledTool = {
                     title: titleCased,
-                    description: `A custom tool designed for ${fields.users || 'educators'} to effectively address ${fields.challenge.toLowerCase().substring(0, 100).replace(/\n/g, ' ')}... This tool streamlines ${fields.vision || 'instructional tasks'} by providing structured specifications and actionable outputs.`,
+                    description: `A custom tool designed for ${sanitizedUsers} to effectively address ${fields.challenge.toLowerCase().substring(0, 100).replace(/\n/g, ' ')}... This tool streamlines ${sanitizedVision} by providing structured specifications and actionable outputs.`,
                     instructions: `
 IDENTITY & ROLE
 You are a specialized assistant in Solara focused on solving this challenge: ${fields.challenge}
 
 PURPOSE
-Your goal is to help ${fields.users || 'educators'} by providing high-quality support based on these objectives: ${fields.vision || 'streamlining classroom tasks and instructional planning'}.
+Your goal is to help ${sanitizedUsers} by providing high-quality support based on these objectives: ${sanitizedVision}.
 
 CORE RESPONSIBILITIES
 1. Analyze all user-provided data and context thoroughly.
 2. Provide precise, actionable insights aligned to school-safe and education-centric standards.
-3. ${fields.constraints ? 'Adhere strictly to these constraints: ' + fields.constraints : 'Maintain a professional, supportive, and educator-facing tone throughout.'}
+3. ${sanitizedConstraints ? 'Adhere strictly to these constraints: ' + sanitizedConstraints : 'Maintain a professional, supportive, and educator-facing tone throughout.'}
 
 EXPECTED OUTPUTS
 - Generate clear, structured responses that are ready for instructional use.
@@ -704,7 +728,7 @@ EXPECTED OUTPUTS
 CONSTRAINTS & PROHIBITIONS
 - Do not produce vague or generic content.
 - Avoid educational jargon where simpler language is more effective.
-${fields.context ? '\nADDITIONAL CONTEXT & MODELS\n' + fields.context : ''}
+${sanitizedContext ? '\nADDITIONAL CONTEXT & MODELS\n' + sanitizedContext : ''}
                     `.trim(),
                     category: "Instructional Planning", 
                     recommendedFields: ["Primary Subject", "Grade Level", "Specific Context"],
@@ -726,7 +750,7 @@ ${fields.context ? '\nADDITIONAL CONTEXT & MODELS\n' + fields.context : ''}
                         </div>
                         {drafts.length > 0 && (
                             <button onClick={onExport} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm font-bold text-slate-600">
-                                <Download className="w-4 h-4" /> Export History
+                                <Download className="w-4 h-4" /> Export All Tool Drafts
                             </button>
                         )}
                     </div>
@@ -789,7 +813,7 @@ ${fields.context ? '\nADDITIONAL CONTEXT & MODELS\n' + fields.context : ''}
                             
                             <button 
                                 onClick={handleAssemble}
-                                disabled={!fields.challenge.trim()}
+                                disabled={isFiller(fields.challenge)}
                                 className="w-full py-4 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md"
                                 style={{ backgroundColor: PANO_NAVY }}
                             >
@@ -846,18 +870,29 @@ ${fields.context ? '\nADDITIONAL CONTEXT & MODELS\n' + fields.context : ''}
 
             const handleToolGenerated = (newTool) => { setDrafts(prev => [newTool, ...prev]); };
 
-            const handleExport = () => {
+            const handleIndividualExport = (draft) => {
+                let content = `## ${draft.title}\n`;
+                content += `**Category:** ${draft.category}\n`;
+                content += `**Description:** ${draft.description}\n\n`;
+                content += `### Tool Instructions\n${draft.instructions}\n\n`;
+                content += `### Recommended Text Fields\n`;
+                if (draft.recommendedFields && draft.recommendedFields.length > 0) {
+                    draft.recommendedFields.forEach(f => content += `- ${f}\n`);
+                } else {
+                    content += "None suggested.\n";
+                }
+                
+                const safeName = draft.title.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                downloadTxt(`${safeName}_specification.txt`, content);
+            };
+
+            const handleExportAll = () => {
                 if (drafts.length === 0) return;
-                let content = "# My Tool History\n\nExport Date: " + new Date().toLocaleDateString() + "\n-------------------------------------------\n\n";
+                let content = "# My Solara Tool History\n\nExport Date: " + new Date().toLocaleDateString() + "\n-------------------------------------------\n\n";
                 drafts.forEach((draft, idx) => {
                     content += `## ${idx + 1}. ${draft.title}\nCategory: ${draft.category}\nDescription: ${draft.description}\n\n### Instructions\n${draft.instructions}\n\n-------------------------------------------\n\n`;
                 });
-                const blob = new Blob([content], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url; link.download = 'my_solara_tool_drafts.txt';
-                document.body.appendChild(link); link.click();
-                document.body.removeChild(link);
+                downloadTxt('my_solara_tool_drafts.txt', content);
             };
 
             const navigateToCategory = (id) => { setActiveCategory(id); setActiveView('home'); setIsSidebarOpen(false); setSelectedDraftIndex(null); };
@@ -947,13 +982,35 @@ ${fields.context ? '\nADDITIONAL CONTEXT & MODELS\n' + fields.context : ''}
                         </header>
                         <div className="p-6 md:p-10 max-w-6xl mx-auto">
                             {activeView === 'builder' ? (
-                                <ToolBuilderView onCopy={handleCopy} onInfoClick={setModalContent} onToolGenerated={handleToolGenerated} drafts={drafts} onExport={handleExport} />
+                                <ToolBuilderView onCopy={handleCopy} onInfoClick={setModalContent} onToolGenerated={handleToolGenerated} drafts={drafts} onExport={handleExportAll} />
                             ) : activeView === 'drafts' && selectedDraftIndex !== null ? (
                                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                                    <button onClick={navigateToHome} className="flex items-center gap-2 font-semibold mb-6 group text-sm text-slate-500 hover:text-slate-800"><Icons.ArrowLeft className="w-4 h-4" /> Back to Home</button>
+                                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+                                        <button onClick={navigateToHome} className="flex items-center gap-2 font-semibold group text-sm text-slate-500 hover:text-slate-800"><Icons.ArrowLeft className="w-4 h-4" /> Back to Home</button>
+                                        <div className="flex items-center gap-3">
+                                            <button 
+                                                onClick={() => handleIndividualExport(drafts[selectedDraftIndex])}
+                                                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-blue-50 transition-colors text-xs font-bold text-blue-600"
+                                            >
+                                                <Icons.FileDown className="w-4 h-4" /> Export This Tool Draft
+                                            </button>
+                                            <button 
+                                                onClick={handleExportAll}
+                                                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-xs font-bold text-slate-600"
+                                            >
+                                                <Icons.Download className="w-4 h-4" /> Export All Tool Drafts
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div className="bg-white rounded-lg p-8 border border-slate-200 shadow-sm mb-10 flex flex-col md:flex-row items-center gap-8">
                                         <div className="p-6 rounded-full bg-slate-50 text-amber-500"><Icons.FileEdit className="w-8 h-8" /></div>
-                                        <div><div className="flex items-center gap-2 mb-2"><span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-widest">My Draft</span><h2 className="text-3xl font-bold">{drafts[selectedDraftIndex].title}</h2></div><p className="text-slate-600">{drafts[selectedDraftIndex].description}</p></div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-widest">My Draft</span>
+                                                <h2 className="text-3xl font-bold">{drafts[selectedDraftIndex].title}</h2>
+                                            </div>
+                                            <p className="text-slate-600">{drafts[selectedDraftIndex].description}</p>
+                                        </div>
                                     </div>
                                     <ToolCard tool={drafts[selectedDraftIndex]} categoryId="drafts" index={selectedDraftIndex} onCopy={handleCopy} onInfoClick={setModalContent} accentColor={PANO_BLUE} initiallyExpanded={true} />
                                 </div>
