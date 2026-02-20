@@ -7,11 +7,10 @@
     <!-- 
       TRANSFORMATION NOTES:
       - Removed Gemini API: Rebuilt Tool Assistant as a structured manual builder.
-      - Informed Naming: Logic now strips conversational prefixes to create professional Title Case names.
-      - Comprehensive Descriptions: Synthesizes a 2-sentence professional summary based on user context.
-      - Filler Logic: Inputs like "na", "n/a", "test", or blank fields are ignored in assembly.
+      - Informed Naming Engine: Intelligently transforms user input into a representative professional title.
+      - Synthesized Descriptions: Generates 2 fluent sentences based on context, avoiding placeholders or "..." snippets.
       - UI Refinement: Centered onboarding modal (max-w-2xl) and removed redundant headers.
-      - Export Features: Individual and bulk export functionality with requested button text.
+      - Export Features: Individual "Export This Tool Draft" and bulk "Export All Tool Drafts".
       - Data Accuracy: Verbatim category and knowledge requirement auditing.
     -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -698,24 +697,43 @@
             const handleAssemble = () => {
                 if (isFiller(fields.challenge)) return;
 
-                // Informed naming decision logic
-                let nameDraft = fields.challenge.split('\n')[0].trim();
-                // Strip common conversational prefixes to focus on the action
-                nameDraft = nameDraft.replace(/^(I need a tool that|I want a tool to|Create a tool for|Help me|A tool for|I need a tool to help me)\s+/i, '');
-                // Cleanup trailing punctuation
-                nameDraft = nameDraft.replace(/\.+$/, '');
+                // --- INFORMED NAMING LOGIC ---
+                // We strip common conversational fluff and identify the tool type based on context
+                let rawInput = fields.challenge.split('\n')[0].trim();
+                let cleanBase = rawInput.replace(/^(I need a tool that|I want a tool to|Create a tool for|Help me|A tool for|I need a tool to help me|a tool that helps me)\s+/i, '');
+                cleanBase = cleanBase.replace(/\.+$/, ''); // Remove trailing dots
+                
+                // Identify inferred type suffixes
+                let suffix = "Assistant";
+                const lowerBase = cleanBase.toLowerCase();
+                if (lowerBase.includes("track") || lowerBase.includes("monitor")) suffix = "Tracker";
+                if (lowerBase.includes("plan") || lowerBase.includes("design")) suffix = "Planner";
+                if (lowerBase.includes("generate") || lowerBase.includes("write") || lowerBase.includes("create")) suffix = "Generator";
+                if (lowerBase.includes("analyze") || lowerBase.includes("review")) suffix = "Analyzer";
+                if (lowerBase.includes("feedback") || lowerBase.includes("grade")) suffix = "Feedback Tool";
+                
+                // Construct the title: "[Inferred Subject] [Inferred Type]"
+                // We try to isolate a subject if the string is long, otherwise use Title Case base
+                const words = cleanBase.split(' ');
+                let nameDraft = cleanBase;
+                if (words.length > 5) {
+                    nameDraft = words.slice(0, 4).join(' '); // Keep it reasonably short
+                }
+                
                 const titleCased = toTitleCase(nameDraft);
+                const finalTitle = titleCased.includes(suffix) ? titleCased : `${titleCased} ${suffix}`;
 
                 const sanitizedUsers = isFiller(fields.users) ? 'educators' : fields.users;
-                const sanitizedVision = isFiller(fields.vision) ? 'streamline instructional tasks' : fields.vision;
+                const sanitizedVision = isFiller(fields.vision) ? 'streamline instructional workflows' : fields.vision;
                 const sanitizedConstraints = isFiller(fields.constraints) ? '' : fields.constraints;
                 const sanitizedContext = isFiller(fields.context) ? '' : fields.context;
 
-                // Build a comprehensive, 2-sentence description
-                const description = `This custom tool is designed for ${sanitizedUsers} to ${sanitizedVision} by systematically addressing the challenge of ${titleCased.toLowerCase()}. It provides structured output specifications that enable educators to generate high-quality materials aligned with district standards and student needs.`;
+                // --- COMPREHENSIVE DESCRIPTION ASSEMBLY ---
+                // A professional 2-sentence synthesis without placeholders or "..."
+                const description = `This custom tool empowers ${sanitizedUsers} to ${sanitizedVision} by providing a structured framework for managing the challenge of ${titleCased.toLowerCase()}. It ensures generated outputs are precise, high-quality, and strictly aligned with district standards while accounting for the unique context of each student.`;
 
                 const assembledTool = {
-                    title: titleCased,
+                    title: finalTitle,
                     description: description,
                     instructions: `
 IDENTITY & ROLE
@@ -758,7 +776,7 @@ ${sanitizedContext ? '\nADDITIONAL CONTEXT & MODELS\n' + sanitizedContext : ''}
                         </div>
                         {drafts.length > 0 && (
                             <button onClick={onExportAll} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm font-bold text-slate-600">
-                                <Icons.Download className="w-4 h-4" /> Export All Tool Drafts
+                                <Download className="w-4 h-4" /> Export All Tool Drafts
                             </button>
                         )}
                     </div>
