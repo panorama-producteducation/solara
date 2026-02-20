@@ -7,12 +7,12 @@
     <!-- 
       TRANSFORMATION NOTES:
       - Removed Gemini API: Rebuilt Tool Assistant as a structured manual builder.
+      - Informed Naming: Logic now strips conversational prefixes to create professional Title Case names.
+      - Comprehensive Descriptions: Synthesizes a 2-sentence professional summary based on user context.
       - Filler Logic: Inputs like "na", "n/a", "test", or blank fields are ignored in assembly.
-      - UPDATED BUTTONS: "Export This Tool Draft" and "Export All Tool Drafts".
-      - Education Context: Specific K-12 file recommendations instead of generic logic.
       - UI Refinement: Centered onboarding modal (max-w-2xl) and removed redundant headers.
-      - Category Cleanup: Ensured tools display exactly one primary category (no slashes).
-      - Data Accuracy: Updated Student of Concern knowledge requirements verbatim.
+      - Export Features: Individual and bulk export functionality with requested button text.
+      - Data Accuracy: Verbatim category and knowledge requirement auditing.
     -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -54,7 +54,7 @@
 
         const isFiller = (val) => {
             if (!val) return true;
-            const fillerWords = ['na', 'n/a', 'test', 'none', '.', '-'];
+            const fillerWords = ['na', 'n/a', 'test', 'none', '.', '-', 'placeholder'];
             return fillerWords.includes(val.toLowerCase().trim());
         };
 
@@ -681,7 +681,7 @@
         }
 
         // --- NEW STRUCTURED BUILDER VIEW ---
-        function ToolBuilderView({ onCopy, onInfoClick, onToolGenerated, drafts, onExport }) {
+        function ToolBuilderView({ onCopy, onInfoClick, onToolGenerated, drafts, onExportAll }) {
             const [fields, setFields] = useState({
                 challenge: '',
                 users: '',
@@ -698,17 +698,25 @@
             const handleAssemble = () => {
                 if (isFiller(fields.challenge)) return;
 
-                const rawTitle = fields.challenge.split('\n')[0].substring(0, 40);
-                const titleCased = toTitleCase(rawTitle);
+                // Informed naming decision logic
+                let nameDraft = fields.challenge.split('\n')[0].trim();
+                // Strip common conversational prefixes to focus on the action
+                nameDraft = nameDraft.replace(/^(I need a tool that|I want a tool to|Create a tool for|Help me|A tool for|I need a tool to help me)\s+/i, '');
+                // Cleanup trailing punctuation
+                nameDraft = nameDraft.replace(/\.+$/, '');
+                const titleCased = toTitleCase(nameDraft);
 
                 const sanitizedUsers = isFiller(fields.users) ? 'educators' : fields.users;
-                const sanitizedVision = isFiller(fields.vision) ? 'streamlining instructional tasks' : fields.vision;
+                const sanitizedVision = isFiller(fields.vision) ? 'streamline instructional tasks' : fields.vision;
                 const sanitizedConstraints = isFiller(fields.constraints) ? '' : fields.constraints;
                 const sanitizedContext = isFiller(fields.context) ? '' : fields.context;
 
+                // Build a comprehensive, 2-sentence description
+                const description = `This custom tool is designed for ${sanitizedUsers} to ${sanitizedVision} by systematically addressing the challenge of ${titleCased.toLowerCase()}. It provides structured output specifications that enable educators to generate high-quality materials aligned with district standards and student needs.`;
+
                 const assembledTool = {
                     title: titleCased,
-                    description: `A custom tool designed for ${sanitizedUsers} to effectively address ${fields.challenge.toLowerCase().substring(0, 100).replace(/\n/g, ' ')}... This tool streamlines ${sanitizedVision} by providing structured specifications and actionable outputs.`,
+                    description: description,
                     instructions: `
 IDENTITY & ROLE
 You are a specialized assistant in Solara focused on solving this challenge: ${fields.challenge}
@@ -749,8 +757,8 @@ ${sanitizedContext ? '\nADDITIONAL CONTEXT & MODELS\n' + sanitizedContext : ''}
                             </p>
                         </div>
                         {drafts.length > 0 && (
-                            <button onClick={onExport} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm font-bold text-slate-600">
-                                <Download className="w-4 h-4" /> Export All Tool Drafts
+                            <button onClick={onExportAll} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm font-bold text-slate-600">
+                                <Icons.Download className="w-4 h-4" /> Export All Tool Drafts
                             </button>
                         )}
                     </div>
@@ -817,7 +825,7 @@ ${sanitizedContext ? '\nADDITIONAL CONTEXT & MODELS\n' + sanitizedContext : ''}
                                 className="w-full py-4 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md"
                                 style={{ backgroundColor: PANO_NAVY }}
                             >
-                                <Sparkles className="w-6 h-6 text-amber-400" />
+                                <Icons.Sparkles className="w-6 h-6 text-amber-400" />
                                 Draft my tool
                             </button>
                         </div>
@@ -982,7 +990,7 @@ ${sanitizedContext ? '\nADDITIONAL CONTEXT & MODELS\n' + sanitizedContext : ''}
                         </header>
                         <div className="p-6 md:p-10 max-w-6xl mx-auto">
                             {activeView === 'builder' ? (
-                                <ToolBuilderView onCopy={handleCopy} onInfoClick={setModalContent} onToolGenerated={handleToolGenerated} drafts={drafts} onExport={handleExportAll} />
+                                <ToolBuilderView onCopy={handleCopy} onInfoClick={setModalContent} onToolGenerated={handleToolGenerated} drafts={drafts} onExportAll={handleExportAll} />
                             ) : activeView === 'drafts' && selectedDraftIndex !== null ? (
                                 <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
