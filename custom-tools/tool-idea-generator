@@ -1,0 +1,868 @@
+import React, { useState, useEffect, useRef } from "react";
+
+const COLORS = {
+  navy: "#161242", green: "#1FAA4A", blue: "#006DB0", teal: "#00A1BB",
+  turquoise: "#108A7D", lime: "#9FCC3B", lavender: "#867EBB",
+  darkGray: "#333333", lightGray: "#EEEEEE", white: "#FFFFFF",
+};
+
+const PRIORITY_AREAS = [
+  { id: "mtss", label: "MTSS", icon: "🔄", desc: "Multi-tiered systems of support, intervention planning, and progress monitoring." },
+  { id: "sped", label: "Special Education", icon: "📋", desc: "IEP development, accommodations, 504 planning, and compliance support." },
+  { id: "attendance", label: "Attendance", icon: "📊", desc: "Chronic absence reduction, family outreach, and attendance team workflows." },
+  { id: "hqim", label: "Instruction & Curriculum", icon: "📚", desc: "Lesson planning, re-teaching, assessment design, and UDL strategies." },
+  { id: "ccr", label: "College & Career Readiness", icon: "🎓", desc: "Postsecondary exploration, career pathways, and recommendation letters." },
+  { id: "family", label: "Family Engagement", icon: "🤝", desc: "Conference prep, family communications, event planning, and home-school connection." },
+  { id: "pd", label: "Professional Learning", icon: "🧠", desc: "PD session design, coaching cycles, and teacher goal-setting." },
+  { id: "planning", label: "District & School Planning", icon: "🏫", desc: "School improvement plans, strategic snapshots, and grant writing." },
+  { id: "assessment", label: "Assessment & Data", icon: "📈", desc: "Data analysis, dashboard summaries, progress reports, and benchmark prep." },
+];
+
+const USER_ROLES = [
+  { id: "teachers", label: "Classroom Teachers", desc: "General and content-area educators." },
+  { id: "sped_teachers", label: "Special Educators", desc: "Special education teachers and related service providers." },
+  { id: "mtss_teams", label: "MTSS / Intervention Teams", desc: "Interventionists, data coaches, and support coordinators." },
+  { id: "principals", label: "Principals & APs", desc: "Building-level school leaders." },
+  { id: "coaches", label: "Instructional Coaches", desc: "Coaching staff supporting teacher growth." },
+  { id: "district", label: "District Leaders", desc: "Central office administrators and directors." },
+  { id: "support", label: "Support Staff", desc: "Counselors, social workers, and family liaisons." },
+  { id: "family_staff", label: "Family-Facing Staff", desc: "Community coordinators and engagement specialists." },
+];
+
+const CHALLENGE_PROMPTS = {
+  mtss: [
+    "What task in MTSS workflows is currently too time-consuming?",
+    "Where is quality inconsistent from one team member to the next?",
+    "What document or plan do staff create from scratch each time?",
+    "Where would a district-aligned template improve consistency?",
+  ],
+  sped: [
+    "What part of the IEP or 504 process takes the most manual effort?",
+    "Where do staff need better access to compliant, standards-aligned language?",
+    "What information do teachers need in a more accessible format?",
+    "Where could a structured template reduce errors or omissions?",
+  ],
+  attendance: [
+    "What attendance-related communication is inconsistent or time-consuming?",
+    "Where do teams struggle to turn attendance data into action?",
+    "What part of the attendance intervention process feels scattered?",
+    "How could celebrating attendance wins become more systematic?",
+  ],
+  hqim: [
+    "Where do teachers spend the most time building materials from scratch?",
+    "What part of lesson planning or differentiation feels repetitive?",
+    "Where is quality of instructional resources inconsistent across classrooms?",
+    "What assessment or rubric task could benefit from a standard template?",
+  ],
+  ccr: [
+    "What CCR-related tasks are counselors or advisors doing manually?",
+    "Where could students benefit from more personalized exploration support?",
+    "What recommendation or documentation process is time-intensive?",
+    "Where would structured templates improve equity in access to information?",
+  ],
+  family: [
+    "What family communication is most time-consuming for staff?",
+    "Where is the quality or tone of family-facing messages inconsistent?",
+    "What recurring event or outreach task could be more streamlined?",
+    "Where could templates help staff produce more welcoming, inclusive messages?",
+  ],
+  pd: [
+    "What part of PD planning or delivery is most repetitive?",
+    "Where do coaches spend time writing summaries or reflections?",
+    "What goal-setting or evaluation process could be more consistent?",
+    "Where would a structured template improve coaching conversations?",
+  ],
+  planning: [
+    "What planning document takes the most time to create each year?",
+    "Where do leaders need help synthesizing data into clear narratives?",
+    "What part of grant writing or improvement planning feels scattered?",
+    "Where would a structured draft accelerate leadership decision-making?",
+  ],
+  assessment: [
+    "What data analysis task is currently done manually or inconsistently?",
+    "Where do staff need help turning raw data into actionable insights?",
+    "What reporting or summary process could be more efficient?",
+    "Where would a structured analysis template improve data-informed decisions?",
+  ],
+};
+
+const TOOLS = [
+  // MTSS
+  { id: "smart-goal", name: "SMART Goal Generator", category: "mtss", areas: ["mtss", "sped", "attendance"],
+    overview: "Select a student and specify their area of need. The tool generates a complete SMART goal with measurement criteria and timeline, aligned to their MTSS tier.",
+    users: ["teachers", "sped_teachers", "mtss_teams", "coaches"],
+    files: "SMART goal exemplars, district goal-setting guidance, MTSS tiered intervention libraries",
+    fields: "Area of need, domain, tier of support, desired outcome timeframe" },
+  { id: "mtss-agenda", name: "MTSS Meeting Agenda Creator", category: "mtss", areas: ["mtss"],
+    overview: "Input your meeting type, students to discuss, and team roles. The tool produces a structured agenda with time allocations, discussion prompts, and an action items tracker.",
+    users: ["mtss_teams", "principals", "coaches"],
+    files: "MTSS meeting protocols, role-specific responsibilities",
+    fields: "Meeting type, students to discuss, duration, team roles" },
+  { id: "behavior-plan", name: "Individualized Behavior Plan Assistant", category: "mtss", areas: ["mtss", "sped"],
+    overview: "Provide student strengths and behavioral concerns. The tool drafts a complete behavior plan with replacement behaviors, prevention strategies, and a monitoring schedule.",
+    users: ["teachers", "sped_teachers", "mtss_teams", "support"],
+    files: "District BIP templates, FBA/BIP frameworks, PBIS strategies",
+    fields: "Target behavior, strengths, triggers, current supports, desired replacement behavior" },
+  { id: "social-story", name: "Social Story Creator", category: "mtss", areas: ["mtss", "sped"],
+    overview: "Describe the skill or situation a student needs support with. The tool writes a short, age-appropriate narrative that helps the student understand and practice expected behavior.",
+    users: ["teachers", "sped_teachers", "support"],
+    files: "Social story exemplars, district support preferences",
+    fields: "Target skill, setting, communication needs, desired behavior" },
+  // Attendance
+  { id: "attendance-contract", name: "Attendance Contract Generator", category: "attendance", areas: ["attendance"],
+    overview: "Enter attendance concerns and support strategies. The tool creates a printable, family-friendly contract with shared commitments and check-in dates.",
+    users: ["principals", "support", "mtss_teams", "family_staff"],
+    files: "District attendance contract templates, tiered intervention guidance",
+    fields: "Identified barriers, family preferences, support strategies, contract timeframe" },
+  { id: "attendance-data", name: "Attendance Data Summary Tool", category: "attendance", areas: ["attendance", "assessment"],
+    overview: "Upload or select attendance data for a student or group. The tool identifies patterns, flags risk factors, and suggests targeted next steps.",
+    users: ["principals", "mtss_teams", "support", "district"],
+    files: "Local definitions for risk indicators",
+    fields: "Time period" },
+  { id: "attendance-celebrate", name: "Attendance Celebration Note Creator", category: "attendance", areas: ["attendance", "family"],
+    overview: "Select a student and their attendance milestone. The tool generates a warm, personalized recognition note ready to print or send home.",
+    users: ["teachers", "principals", "support", "family_staff"],
+    files: "School values, examples of recognition messaging",
+    fields: "Attendance milestone, preferred tone" },
+  { id: "attendance-meeting", name: "Attendance Team Meeting Prep", category: "attendance", areas: ["attendance"],
+    overview: "List students of concern and prior notes. The tool creates a one-page meeting prep sheet with data summaries, contributing factors, and recommended actions.",
+    users: ["principals", "mtss_teams", "support"],
+    files: "Attendance team meeting structure, sample agenda",
+    fields: "Meeting date, students of concern, notes from prior meeting" },
+  // Instruction
+  { id: "reteach", name: "Lesson Re-Teach Plan Generator", category: "hqim", areas: ["hqim"],
+    overview: "Identify the concept students struggled with and common misconceptions. The tool builds a scaffolded re-teach plan with differentiation strategies and formative checks.",
+    users: ["teachers", "coaches"],
+    files: "Standards, curriculum scope and sequence",
+    fields: "Concept needing re-teach, common errors, group size, format, available time" },
+  { id: "rubric", name: "Rubric Generator", category: "hqim", areas: ["hqim"],
+    overview: "Describe the assignment and learning standards. The tool creates a structured rubric table with clear performance descriptors at each level.",
+    users: ["teachers", "coaches"],
+    files: "Standards-aligned rubric examples, district grading policies",
+    fields: "Assignment description, points, learning objectives, performance levels" },
+  { id: "udl", name: "UDL Strategy Generator", category: "hqim", areas: ["hqim", "sped"],
+    overview: "Share a lesson objective and known learner needs. The tool recommends strategies across all three UDL principles with practical implementation examples.",
+    users: ["teachers", "sped_teachers", "coaches"],
+    files: "UDL framework",
+    fields: "Lesson goal, learner needs, preferred modalities, materials available" },
+  // CCR
+  { id: "career-path", name: "Career Pathway Exploration Tool", category: "ccr", areas: ["ccr"],
+    overview: "Input student interests and strengths. The tool matches them to career clusters with occupation examples and postsecondary program options.",
+    users: ["support", "teachers", "coaches"],
+    files: "Career interest inventories, state career clusters",
+    fields: "Student interests, strengths, preferred working style, post-grad goals" },
+  { id: "college-explore", name: "College & Postsecondary Exploration Generator", category: "ccr", areas: ["ccr"],
+    overview: "Provide student preferences for location, size, and field of study. The tool generates a tailored list of best-fit postsecondary options.",
+    users: ["support", "teachers"],
+    files: "College match criteria, FAFSA info",
+    fields: "Location preferences, career interests, financial aid need, school type" },
+  { id: "rec-letter", name: "Letter of Recommendation Generator", category: "ccr", areas: ["ccr"],
+    overview: "Enter student strengths, accomplishments, and the target program. The tool drafts a professional recommendation letter with specific examples.",
+    users: ["teachers", "principals", "coaches", "support"],
+    files: "Recommendation letter exemplars, formatting guidance",
+    fields: "Relationship to student, strengths, accomplishments, target program, tone" },
+  // Family
+  { id: "conference-prep", name: "Parent/Teacher Conference Prep Tool", category: "family", areas: ["family"],
+    overview: "Select a student and add notes. The tool generates a conference one-pager with strengths, talking points, and questions to encourage family input.",
+    users: ["teachers", "sped_teachers", "support"],
+    files: "Family communication best practices, sample agenda",
+    fields: "Conference length, student strengths, family communication preferences" },
+  { id: "family-update", name: "Family Update Generator", category: "family", areas: ["family"],
+    overview: "Highlight recent progress and upcoming focus areas. The tool creates a clear, jargon-free update ready to share with families.",
+    users: ["teachers", "support", "family_staff"],
+    files: "Family newsletter examples, upcoming dates, home activity suggestions",
+    fields: "Progress highlights, growth areas, home support tips, upcoming events" },
+  { id: "event-invite", name: "Family Event Invitation Writer", category: "family", areas: ["family"],
+    overview: "Enter event details and audience. The tool writes a warm, inclusive invitation with clear logistics and a call to action.",
+    users: ["principals", "family_staff", "support"],
+    files: "Event communication templates, community partnership tips",
+    fields: "Event details, audience, purpose, RSVP info" },
+  // PD
+  { id: "pd-designer", name: "PD Session Designer", category: "pd", areas: ["pd"],
+    overview: "Specify the topic, audience, and session length. The tool creates a detailed agenda with activities, discussion prompts, and reflection opportunities.",
+    users: ["coaches", "district", "principals"],
+    files: "District adult learning theory, common PD format, district priorities",
+    fields: "Topic, audience, length, desired outcomes" },
+  { id: "goal-reflect", name: "Teacher Goal Reflection Tool", category: "pd", areas: ["pd"],
+    overview: "Input a teacher's goal and progress notes. The tool synthesizes a strengths-based reflection summary with next steps.",
+    users: ["coaches", "principals"],
+    files: "Teacher evaluation rubrics, common growth goal structures",
+    fields: "Goal statement, progress notes, artifacts, timeframe" },
+  { id: "coaching-summary", name: "Coaching Cycle Summary Generator", category: "pd", areas: ["pd"],
+    overview: "Provide the coaching focus and observations. The tool generates a concise summary with evidence, progress, and agreed-upon next steps.",
+    users: ["coaches", "principals"],
+    files: "Instructional coaching models, feedback language norms",
+    fields: "Focus area, observed strengths, agreed next steps, coaching frequency" },
+  // Planning
+  { id: "sip-builder", name: "School Improvement Plan Builder", category: "planning", areas: ["planning"],
+    overview: "Enter priority areas and stakeholder input. The tool drafts a structured SIP with goals, strategies, action steps, and monitoring plans.",
+    users: ["principals", "district"],
+    files: "SIP templates, state requirements, district strategic goals",
+    fields: "Priority areas, stakeholder input, timeline" },
+  { id: "strategic-snapshot", name: "Strategic Planning Snapshot Generator", category: "planning", areas: ["planning", "assessment"],
+    overview: "Provide key performance data and priorities. The tool creates a one-page leadership snapshot with trends, highlights, and strategic next steps.",
+    users: ["district", "principals"],
+    files: "District vision statements",
+    fields: "Audience, key priorities" },
+  { id: "grant-narrative", name: "Grant Narrative Starter Tool", category: "planning", areas: ["planning"],
+    overview: "Describe the project and target population. The tool drafts a compelling grant narrative aligned to district goals with measurable outcomes.",
+    users: ["district", "principals"],
+    files: "Common grant structures and language",
+    fields: "Project description, target population, needs statement, planned activities, outcomes" },
+  // SPED
+  { id: "iep-goal", name: "IEP Goal Writer", category: "sped", areas: ["sped"],
+    overview: "Select the area of focus and current performance level. The tool generates a SMART-formatted IEP goal aligned to standards with measurement criteria.",
+    users: ["sped_teachers", "mtss_teams"],
+    files: "SMART goal frameworks, state standards, IEP compliance guidance",
+    fields: "Area of focus, timeframe, desired outcome" },
+  { id: "accommodation", name: "Accommodation Plan Assistant", category: "sped", areas: ["sped"],
+    overview: "Input the student's learning profile and challenges. The tool recommends specific, implementable accommodations organized by category.",
+    users: ["sped_teachers", "teachers", "mtss_teams"],
+    files: "IDEA and Section 504 guidance, instructional accessibility practices",
+    fields: "Disability or diagnosis, observed challenges, academic setting, student strengths" },
+  { id: "iep-glance", name: "IEP at a Glance Generator", category: "sped", areas: ["sped"],
+    overview: "Upload an IEP or enter key details. The tool creates a concise one-page reference with goals, accommodations, and services for classroom teachers.",
+    users: ["sped_teachers", "teachers"],
+    files: "Example template",
+    fields: "Student name, key accommodations, primary goals, support strategies" },
+  // Assessment
+  { id: "data-analyzer", name: "Assessment Data Analyzer", category: "assessment", areas: ["assessment", "hqim"],
+    overview: "Upload class assessment data. The tool identifies learning gaps by standard, suggests student groupings, and recommends targeted interventions.",
+    users: ["teachers", "coaches", "mtss_teams"],
+    files: "District assessment frameworks, standards alignment guides",
+    fields: "Assessment type, grade/subject, benchmarks, grouping preferences" },
+  { id: "dashboard-summary", name: "Data Dashboard Summary Creator", category: "assessment", areas: ["assessment", "planning"],
+    overview: "Specify the time period and priority metrics. The tool generates an executive summary of trends and recommendations for leadership.",
+    users: ["district", "principals"],
+    files: "District KPIs, benchmark comparisons, historical trend data",
+    fields: "Time period, audience level, priority metrics, comparison groups" },
+  { id: "progress-report", name: "Student Progress Report Generator", category: "assessment", areas: ["assessment", "family"],
+    overview: "Select data sources and reporting period. The tool compiles a family-friendly progress summary with strengths, growth areas, and next steps.",
+    users: ["teachers", "sped_teachers", "support"],
+    files: "Report card templates, family communication guidelines",
+    fields: "Reporting period, data sources, student strengths, family preferences" },
+  { id: "benchmark-prep", name: "Benchmark Assessment Prep Tool", category: "assessment", areas: ["assessment", "hqim"],
+    overview: "Enter the assessment date and prior performance patterns. The tool creates a prioritized review plan with activities and differentiation strategies.",
+    users: ["teachers", "coaches"],
+    files: "Assessment blueprints, standards coverage maps",
+    fields: "Assessment date, subject/grade, previous performance, available prep time" },
+];
+
+const PanoramaLogo = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+    <rect width="100" height="100" rx="8" fill={COLORS.green}/>
+    <path d="M15 85L50 15L85 85H15Z" fill="none" stroke={COLORS.white} strokeWidth="4"/>
+    <path d="M15 85L50 50L85 85" fill="none" stroke={COLORS.white} strokeWidth="4"/>
+    <path d="M50 15L50 50" stroke={COLORS.white} strokeWidth="4"/>
+    <path d="M32.5 67.5L67.5 67.5" stroke={COLORS.white} strokeWidth="4"/>
+  </svg>
+);
+
+const ProgressBar = ({ step, total }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "16px 0" }}>
+    {Array.from({ length: total }, (_, i) => (
+      <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 13, fontWeight: 700, flexShrink: 0,
+          background: i < step ? COLORS.green : i === step ? COLORS.navy : "#E2E4E9",
+          color: i <= step ? COLORS.white : "#9CA3AF",
+          transition: "all 0.3s ease",
+        }}>{i + 1}</div>
+        {i < total - 1 && (
+          <div style={{ flex: 1, height: 3, marginLeft: 4, marginRight: 4, borderRadius: 2,
+            background: i < step ? COLORS.green : "#E2E4E9", transition: "all 0.3s ease" }}/>
+        )}
+      </div>
+    ))}
+  </div>
+);
+
+const StepLabel = ({ step }) => {
+  const labels = ["Priority Area", "Challenge", "Who Benefits", "Exemplars", "Example Tools", "Recommendations"];
+  return <div style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>Step {step + 1} of 6 — {labels[step]}</div>;
+};
+
+const Card = ({ selected, onClick, children, style = {} }) => (
+  <div onClick={onClick} style={{
+    border: `2px solid ${selected ? COLORS.green : "#E2E4E9"}`,
+    borderRadius: 12, padding: 16, cursor: "pointer", transition: "all 0.2s ease",
+    background: selected ? "#F0FBF4" : COLORS.white,
+    boxShadow: selected ? `0 0 0 1px ${COLORS.green}20` : "none",
+    ...style,
+  }}>{children}</div>
+);
+
+const Button = ({ onClick, children, variant = "primary", disabled = false, style = {} }) => {
+  const base = { padding: "12px 28px", borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: disabled ? "not-allowed" : "pointer", border: "none", transition: "all 0.2s ease", opacity: disabled ? 0.5 : 1 };
+  const styles = {
+    primary: { ...base, background: COLORS.green, color: COLORS.white },
+    secondary: { ...base, background: "transparent", color: COLORS.navy, border: `2px solid ${COLORS.navy}` },
+    ghost: { ...base, background: "transparent", color: COLORS.darkGray, padding: "12px 16px" },
+  };
+  return <button onClick={disabled ? undefined : onClick} style={{ ...styles[variant], ...style }}>{children}</button>;
+};
+
+const Tip = ({ children }) => (
+  <div style={{ background: "#F0FBF4", border: `1px solid ${COLORS.green}30`, borderRadius: 8, padding: "12px 16px", fontSize: 14, color: COLORS.darkGray, lineHeight: 1.5, marginBottom: 16 }}>
+    <span style={{ fontWeight: 700, color: COLORS.green }}>Tip: </span>{children}
+  </div>
+);
+
+export default function SolaraToolIdeaGenerator() {
+  const [step, setStep] = useState(-1); // -1 = welcome
+  const [data, setData] = useState({
+    priority: null, challenge: "", users: [], hasExemplars: null, exemplarNotes: "",
+    selectedTools: [], noneMatch: false, recommendations: null, isGenerating: false, genError: null,
+  });
+  const [copySuccess, setCopySuccess] = useState(false);
+  const resultsRef = useRef(null);
+
+  const update = (field, value) => setData(d => ({ ...d, [field]: value }));
+  const canNext = () => {
+    if (step === 0) return !!data.priority;
+    if (step === 1) return data.challenge.trim().length > 20;
+    if (step === 2) return data.users.length > 0;
+    if (step === 3) return data.hasExemplars !== null;
+    if (step === 4) return data.selectedTools.length > 0 || data.noneMatch;
+    return true;
+  };
+
+  const filteredTools = TOOLS.filter(t => t.areas.includes(data.priority));
+  const secondaryTools = TOOLS.filter(t => !t.areas.includes(data.priority) && data.users.some(u => t.users.includes(u))).slice(0, 4);
+
+  const generateRecommendations = async () => {
+    update("isGenerating", true);
+    update("genError", null);
+    const priorityLabel = PRIORITY_AREAS.find(p => p.id === data.priority)?.label || "";
+    const userLabels = data.users.map(uid => USER_ROLES.find(u => u.id === uid)?.label).filter(Boolean);
+    const selectedToolNames = data.selectedTools.map(id => TOOLS.find(t => t.id === id)?.name).filter(Boolean);
+    const selectedToolObjects = data.selectedTools.map(id => TOOLS.find(t => t.id === id)).filter(Boolean);
+
+    // If user selected example tools, we generate fewer new recs and append their picks
+    const numUserPicks = Math.min(selectedToolObjects.length, 2);
+    const numToGenerate = 3 - numUserPicks;
+
+    const prompt = `You are a K-12 education technology specialist helping districts plan custom AI tools for Solara (an AI platform by Panorama Education).
+
+Based on the following inputs from a district planning session, generate exactly ${numToGenerate} recommended custom tool concept${numToGenerate > 1 ? "s" : ""}. For each tool, provide a complete spec sheet that could be handed to someone to build the tool.
+
+INPUTS:
+- Priority Area: ${priorityLabel}
+- Specific Challenge: ${data.challenge}
+- Primary Audience: ${userLabels.join(", ")}
+- Has Exemplars/Templates: ${data.hasExemplars ? "Yes" : "No"}${data.exemplarNotes ? ` (Notes: ${data.exemplarNotes})` : ""}
+- Inspirational Tools Selected: ${selectedToolNames.length > 0 ? selectedToolNames.join(", ") : "None selected"}
+
+For each of the ${numToGenerate} tool concept${numToGenerate > 1 ? "s" : ""}, provide:
+1. Tool Name (clear, descriptive, action-oriented)
+2. Tool Description (2-3 sentences explaining what the tool does and who it helps, written for a district leader audience)
+3. Why This Fits (2 sentences connecting this tool to the stated challenge and audience)
+4. Suggested Input Fields (3-6 fields the educator would fill in when using the tool, with brief descriptions)
+5. Suggested Knowledge Files (2-4 types of documents to upload for context)
+6. Expected Output (1-2 sentences describing what the tool produces)
+7. Pilot Readiness Score (High/Medium/Low based on how easy this would be to build and test quickly)
+
+Also identify which of the ${numToGenerate} tool${numToGenerate > 1 ? "s" : ""} should be the "Recommended First Pilot" and explain why in 2 sentences.${numToGenerate === 1 ? " Set isRecommendedPilot to true for it." : ""}
+
+Respond ONLY in valid JSON with this exact structure (no markdown, no backticks, no preamble):
+{
+  "tools": [
+    {
+      "name": "",
+      "description": "",
+      "whyFits": "",
+      "fields": [{"name": "", "description": ""}],
+      "knowledgeFiles": [""],
+      "expectedOutput": "",
+      "pilotReadiness": "High|Medium|Low",
+      "isRecommendedPilot": true|false
+    }
+  ],
+  "pilotRationale": ""
+}`;
+
+    try {
+      // --- GEMINI API CALL ---
+      // Uses the provided execution environment apiKey and endpoint
+      const apiKey = "";
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          }),
+        }
+      );
+      const result = await response.json();
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+
+      // Append user-selected example tools as additional recommendation cards
+      const userPickCards = selectedToolObjects.slice(0, 2).map(t => ({
+        name: t.name,
+        description: t.overview,
+        whyFits: "You selected this tool as a close match for your challenge. It addresses a proven, repeatable workflow in this priority area.",
+        fields: t.fields.split(", ").map(f => ({ name: f.trim(), description: "" })),
+        knowledgeFiles: t.files.split(", ").map(f => f.trim()),
+        expectedOutput: "See the full tool guide for detailed output examples.",
+        pilotReadiness: "High",
+        isRecommendedPilot: false,
+        isUserPick: true,
+      }));
+
+      parsed.tools = [...parsed.tools, ...userPickCards];
+      update("recommendations", parsed);
+    } catch (err) {
+      console.error(err);
+      update("genError", "Something went wrong generating recommendations. Please try again.");
+    } finally {
+      update("isGenerating", false);
+    }
+  };
+
+  const buildPlainTextSummary = () => {
+    const priorityLabel = PRIORITY_AREAS.find(p => p.id === data.priority)?.label || "";
+    const userLabels = data.users.map(uid => USER_ROLES.find(u => u.id === uid)?.label).filter(Boolean);
+    const pilot = data.recommendations.tools.find(t => t.isRecommendedPilot);
+    let txt = `SOLARA CUSTOM TOOL PLANNING SUMMARY\nGenerated ${new Date().toLocaleDateString()} | Panorama Education\n\n`;
+    txt += `PLANNING CONTEXT\n`;
+    txt += `Priority Area: ${priorityLabel}\n`;
+    txt += `Challenge: ${data.challenge}\n`;
+    txt += `Primary Audience: ${userLabels.join(", ")}\n`;
+    txt += `Exemplars Available: ${data.hasExemplars ? "Yes" : "No"}${data.exemplarNotes ? ` (${data.exemplarNotes})` : ""}\n\n`;
+    if (pilot) {
+      txt += `RECOMMENDED FIRST PILOT: ${pilot.name}\n`;
+      txt += `${data.recommendations.pilotRationale}\n\n`;
+    }
+    data.recommendations.tools.forEach((tool, i) => {
+      const tag = tool.isRecommendedPilot ? " [RECOMMENDED PILOT]" : tool.isUserPick ? " [YOUR SELECTION]" : "";
+      txt += `${"=".repeat(60)}\n`;
+      txt += `${i + 1}. ${tool.name}${tag}\n`;
+      txt += `${"=".repeat(60)}\n`;
+      txt += `${tool.description}\n\n`;
+      txt += `Why This Fits: ${tool.whyFits}\n`;
+      txt += `Pilot Readiness: ${tool.pilotReadiness}\n`;
+      txt += `Expected Output: ${tool.expectedOutput}\n\n`;
+      txt += `Suggested Input Fields:\n`;
+      tool.fields.forEach(f => { txt += `  - ${f.name}${f.description ? `: ${f.description}` : ""}\n`; });
+      txt += `\nSuggested Knowledge Files:\n`;
+      tool.knowledgeFiles.forEach(f => { txt += `  - ${f}\n`; });
+      txt += `\n`;
+    });
+    txt += `---\nThis summary was generated using the Solara Custom Tool Idea Generator by Panorama Education.\nReview all recommendations with your implementation team before building.`;
+    return txt;
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      const text = buildPlainTextSummary();
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    } catch (err) {
+      const text = buildPlainTextSummary();
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    }
+  };
+
+  // ---- RENDER ----
+  const containerStyle = { fontFamily: "'Segoe UI', Arial, Helvetica, sans-serif", minHeight: "100vh", background: "#F8F9FB", color: COLORS.darkGray };
+
+  // Welcome
+  if (step === -1) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ background: `linear-gradient(135deg, ${COLORS.navy} 0%, #2A2470 100%)`, padding: "48px 24px", textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 24 }}>
+            <PanoramaLogo size={40} />
+            <span style={{ color: COLORS.white, fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Panorama Education</span>
+          </div>
+          <h1 style={{ color: COLORS.white, fontSize: 32, fontWeight: 800, margin: "0 0 12px", lineHeight: 1.2 }}>Solara Custom Tool<br/>Idea Generator</h1>
+          <p style={{ color: "#B8B5D0", fontSize: 17, maxWidth: 540, margin: "0 auto 32px", lineHeight: 1.6 }}>
+            Move from "we could do anything" to "here's what we should do first." This guided experience helps your team identify high-value Solara Custom Tools aligned to your district's priorities.
+          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+            <Button onClick={() => setStep(0)} style={{ fontSize: 17, padding: "16px 40px" }}>Get Started</Button>
+            <a href="https://sites.google.com/panoramaed.com/panorama-solara-tool-guide/home" target="_blank" rel="noopener noreferrer"
+              style={{ padding: "14px 24px", borderRadius: 8, fontWeight: 700, fontSize: 15, border: "2px solid rgba(255,255,255,0.4)", color: COLORS.white, textDecoration: "none", transition: "all 0.2s ease", background: "rgba(255,255,255,0.08)" }}>Browse Example Tools ↗</a>
+            <a href="https://academy.panoramaed.com/hc/en-us/articles/35310291425300-Creating-and-Managing-Custom-Tools" target="_blank" rel="noopener noreferrer"
+              style={{ padding: "14px 24px", borderRadius: 8, fontWeight: 700, fontSize: 15, border: "2px solid rgba(255,255,255,0.4)", color: COLORS.white, textDecoration: "none", transition: "all 0.2s ease", background: "rgba(255,255,255,0.08)" }}>Custom Tool Setup Guide ↗</a>
+          </div>
+        </div>
+        <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 24px" }}>
+          <h2 style={{ color: COLORS.navy, fontSize: 20, fontWeight: 700, marginBottom: 20 }}>How it works</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
+            {[
+              { num: "1", title: "Pick a priority", desc: "Choose the strategic area where better workflows would have the most impact." },
+              { num: "2", title: "Define the challenge", desc: "Get specific about the task, workflow, or pain point you want to solve." },
+              { num: "3", title: "Identify who benefits", desc: "Clarify who would benefit most from the tool and who should pilot it first." },
+              { num: "4", title: "Explore examples", desc: "Browse relevant tool examples and select the ones that match your vision." },
+              { num: "5", title: "Get recommendations", desc: "Receive tailored tool concepts with specs you can use to start building." },
+              { num: "6", title: "Export your plan", desc: "Download a summary to share with your team and guide next steps." },
+            ].map(s => (
+              <div key={s.num} style={{ background: COLORS.white, borderRadius: 10, padding: 20, border: "1px solid #E2E4E9" }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: COLORS.green, color: COLORS.white, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, marginBottom: 10 }}>{s.num}</div>
+                <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 15, marginBottom: 4 }}>{s.title}</div>
+                <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>{s.desc}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 28 }}>
+            <Tip>Custom Tools work best for repeatable, district-aligned workflows. This process will help you focus on use cases where consistency, time savings, and quality matter most.</Tip>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={containerStyle}>
+      {/* Header */}
+      <div style={{ background: COLORS.navy, padding: "14px 24px", display: "flex", alignItems: "center", gap: 10 }}>
+        <PanoramaLogo size={28} />
+        <span style={{ color: COLORS.white, fontSize: 15, fontWeight: 700, flex: 1 }}>Solara Custom Tool Idea Generator</span>
+        <button onClick={() => { setStep(-1); setData({ priority: null, challenge: "", users: [], hasExemplars: null, exemplarNotes: "", selectedTools: [], noneMatch: false, recommendations: null, isGenerating: false, genError: null }); }}
+          style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: COLORS.white, padding: "6px 14px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s ease" }}
+          onMouseEnter={e => e.target.style.background = "rgba(255,255,255,0.2)"}
+          onMouseLeave={e => e.target.style.background = "rgba(255,255,255,0.12)"}
+        >Home</button>
+      </div>
+
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 24px 80px" }}>
+        {step < 5 && <ProgressBar step={step} total={6} />}
+        {step < 5 && <StepLabel step={step} />}
+
+        {/* STEP 0: Priority Area */}
+        {step === 0 && (
+          <div>
+            <h2 style={{ color: COLORS.navy, fontSize: 22, fontWeight: 800, margin: "8px 0 6px" }}>Which high-impact area should we focus on?</h2>
+            <p style={{ color: "#6B7280", fontSize: 15, marginBottom: 20, lineHeight: 1.5 }}>Where will increased innovation or efficiency move the needle most?</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+              {PRIORITY_AREAS.map(p => (
+                <Card key={p.id} selected={data.priority === p.id} onClick={() => update("priority", p.id)}>
+                  <div style={{ fontSize: 24, marginBottom: 6 }}>{p.icon}</div>
+                  <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 15, marginBottom: 4 }}>{p.label}</div>
+                  <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.4 }}>{p.desc}</div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 1: Challenge */}
+        {step === 1 && (
+          <div>
+            <h2 style={{ color: COLORS.navy, fontSize: 22, fontWeight: 800, margin: "8px 0 6px" }}>What specific challenge should we tackle?</h2>
+            <p style={{ color: "#6B7280", fontSize: 15, marginBottom: 16, lineHeight: 1.5 }}>Describe the workflow, task, or pain point in detail. The more specific you are, the better the recommendations.</p>
+            <div style={{ background: COLORS.white, borderRadius: 10, border: "1px solid #E2E4E9", padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>Consider these prompts</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {(CHALLENGE_PROMPTS[data.priority] || []).map((q, i) => (
+                  <div key={i} style={{ fontSize: 14, color: "#6B7280", lineHeight: 1.4, padding: "8px 12px", background: "#F8F9FB", borderRadius: 6, cursor: "pointer" }}
+                    onClick={() => update("challenge", data.challenge + (data.challenge ? "\n" : "") + q)}>
+                    {q}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <textarea value={data.challenge} onChange={e => update("challenge", e.target.value)} placeholder="Describe the specific challenge, task, or workflow you want to improve..." style={{
+              width: "100%", minHeight: 140, padding: 16, borderRadius: 10, border: "2px solid #E2E4E9", fontSize: 15, lineHeight: 1.6, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box",
+              outline: "none",
+            }} onFocus={e => e.target.style.borderColor = COLORS.green} onBlur={e => e.target.style.borderColor = "#E2E4E9"} />
+            <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>{data.challenge.length} characters {data.challenge.trim().length < 20 ? "(minimum 20)" : "✓"}</div>
+          </div>
+        )}
+
+        {/* STEP 2: Primary User */}
+        {step === 2 && (
+          <div>
+            <h2 style={{ color: COLORS.navy, fontSize: 22, fontWeight: 800, margin: "8px 0 6px" }}>Who would benefit the most from this?</h2>
+            <p style={{ color: "#6B7280", fontSize: 15, marginBottom: 8, lineHeight: 1.5 }}>Identify the educators who might use a tool designed to tackle this challenge.</p>
+            <p style={{ color: COLORS.green, fontSize: 13, fontWeight: 600, marginBottom: 20 }}>{data.users.length} of 4 selected</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+              {USER_ROLES.map(u => {
+                const sel = data.users.includes(u.id);
+                const atMax = data.users.length >= 4 && !sel;
+                return (
+                  <Card key={u.id} selected={sel} onClick={() => {
+                    if (sel) { update("users", data.users.filter(x => x !== u.id)); }
+                    else if (!atMax) { update("users", [...data.users, u.id]); }
+                  }} style={{ opacity: atMax ? 0.5 : 1, cursor: atMax ? "default" : "pointer" }}>
+                    <div style={{ display: "flex", alignItems: "start", justifyContent: "space-between", gap: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 15, marginBottom: 4 }}>{u.label}</div>
+                        <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.4 }}>{u.desc}</div>
+                      </div>
+                      <div style={{ width: 22, height: 22, borderRadius: 5, border: `2px solid ${sel ? COLORS.green : "#D1D5DB"}`, background: sel ? COLORS.green : "transparent",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                        {sel && <span style={{ color: COLORS.white, fontSize: 13, fontWeight: 800 }}>✓</span>}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 20 }}>
+              <Tip>The strongest pilots start with roles naturally aligned to the tool's purpose, like MTSS teams for intervention planning or instructional coaches for PD resources.</Tip>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: Exemplars */}
+        {step === 3 && (
+          <div>
+            <h2 style={{ color: COLORS.navy, fontSize: 22, fontWeight: 800, margin: "8px 0 6px" }}>Do you have examples of what "great" looks like?</h2>
+            <p style={{ color: "#6B7280", fontSize: 15, marginBottom: 20, lineHeight: 1.5 }}>Templates, exemplars, or existing documents help shape a custom tool's output. They also serve as Knowledge files you can upload when building the tool in Solara.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+              <Card selected={data.hasExemplars === true} onClick={() => update("hasExemplars", true)}>
+                <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 16, marginBottom: 4 }}>Yes, we have some</div>
+                <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.4 }}>We have templates, rubrics, exemplar documents, or existing formats we'd want to replicate.</div>
+              </Card>
+              <Card selected={data.hasExemplars === false} onClick={() => update("hasExemplars", false)}>
+                <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 16, marginBottom: 4 }}>Not yet</div>
+                <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.4 }}>We're starting from scratch or don't have a standardized format in place yet.</div>
+              </Card>
+            </div>
+            {data.hasExemplars === true && (
+              <div>
+                <label style={{ fontSize: 14, fontWeight: 600, color: COLORS.navy, display: "block", marginBottom: 8 }}>Briefly describe what you have (optional)</label>
+                <textarea value={data.exemplarNotes} onChange={e => update("exemplarNotes", e.target.value)} placeholder="e.g., We have a BIP template in Google Docs, a district attendance letter format, and sample SMART goals from last year..." style={{
+                  width: "100%", minHeight: 80, padding: 14, borderRadius: 10, border: "2px solid #E2E4E9", fontSize: 14, lineHeight: 1.5, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", outline: "none",
+                }} />
+              </div>
+            )}
+            {data.hasExemplars === false && (
+              <Tip>That's OK! Your recommendations will include suggestions for the types of documents to create or gather. These become the Knowledge files that make your custom tool smarter.</Tip>
+            )}
+          </div>
+        )}
+
+        {/* STEP 4: Example Tools */}
+        {step === 4 && (
+          <div>
+            <h2 style={{ color: COLORS.navy, fontSize: 22, fontWeight: 800, margin: "8px 0 6px" }}>Which example tools are closest to what you need?</h2>
+            <p style={{ color: "#6B7280", fontSize: 15, marginBottom: 8, lineHeight: 1.5 }}>Select one or more tools that align with your challenge. These will inform your recommendations.</p>
+            <p style={{ color: COLORS.green, fontSize: 13, fontWeight: 600, marginBottom: 20 }}>{data.noneMatch ? "Skipping tool selection" : `${data.selectedTools.length} selected`}</p>
+
+            {!data.noneMatch && (
+              <>
+                <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>
+                  Recommended for {PRIORITY_AREAS.find(p => p.id === data.priority)?.label}
+                </div>
+                <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                  {filteredTools.map(t => {
+                    const sel = data.selectedTools.includes(t.id);
+                    return (
+                      <Card key={t.id} selected={sel} onClick={() => update("selectedTools", sel ? data.selectedTools.filter(x => x !== t.id) : [...data.selectedTools, t.id])}
+                        style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "start", gap: 12 }}>
+                        <div>
+                          <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 15, marginBottom: 4 }}>{t.name}</div>
+                          <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>{t.overview}</div>
+                        </div>
+                        <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${sel ? COLORS.green : "#D1D5DB"}`, background: sel ? COLORS.green : "transparent",
+                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                          {sel && <span style={{ color: COLORS.white, fontSize: 14, fontWeight: 800 }}>✓</span>}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {secondaryTools.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 10 }}>
+                      Also relevant for your selected roles
+                    </div>
+                    <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                      {secondaryTools.map(t => {
+                        const sel = data.selectedTools.includes(t.id);
+                        return (
+                          <Card key={t.id} selected={sel} onClick={() => update("selectedTools", sel ? data.selectedTools.filter(x => x !== t.id) : [...data.selectedTools, t.id])}
+                            style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "start", gap: 12 }}>
+                            <div>
+                              <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 15, marginBottom: 4 }}>{t.name}</div>
+                              <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>{t.overview}</div>
+                            </div>
+                            <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${sel ? COLORS.green : "#D1D5DB"}`, background: sel ? COLORS.green : "transparent",
+                              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                              {sel && <span style={{ color: COLORS.white, fontSize: 14, fontWeight: 800 }}>✓</span>}
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* None of these match option */}
+            <div style={{ borderTop: "1px solid #E2E4E9", paddingTop: 16 }}>
+              <Card selected={data.noneMatch} onClick={() => {
+                if (data.noneMatch) { update("noneMatch", false); }
+                else { setData(d => ({ ...d, noneMatch: true, selectedTools: [] })); }
+              }} style={{ background: data.noneMatch ? "#F0FBF4" : "#FAFAFA" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${data.noneMatch ? COLORS.green : "#D1D5DB"}`, background: data.noneMatch ? COLORS.green : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {data.noneMatch && <span style={{ color: COLORS.white, fontSize: 14, fontWeight: 800 }}>✓</span>}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 15 }}>None of these match what I need</div>
+                    <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.4 }}>Skip this step. We'll generate all 3 recommendations based on your other inputs.</div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: Recommendations */}
+        {step === 5 && (
+          <div ref={resultsRef}>
+            {!data.recommendations && !data.isGenerating && !data.genError && (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <h2 style={{ color: COLORS.navy, fontSize: 22, fontWeight: 800, margin: "0 0 12px" }}>Ready to generate your recommendations</h2>
+                <p style={{ color: "#6B7280", fontSize: 15, maxWidth: 480, margin: "0 auto 24px", lineHeight: 1.5 }}>
+                  Based on your selections, we'll generate 3 tailored Custom Tool concepts with detailed specs you can use to start building in Solara.
+                </p>
+                <div style={{ background: COLORS.white, borderRadius: 10, border: "1px solid #E2E4E9", padding: 20, maxWidth: 480, margin: "0 auto 24px", textAlign: "left" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 10 }}>YOUR SELECTIONS</div>
+                  <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Priority:</strong> {PRIORITY_AREAS.find(p => p.id === data.priority)?.label}</div>
+                  <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Audience:</strong> {data.users.map(uid => USER_ROLES.find(u => u.id === uid)?.label).filter(Boolean).join(", ")}</div>
+                  <div style={{ fontSize: 14, marginBottom: 6 }}><strong>Challenge:</strong> {data.challenge.substring(0, 120)}{data.challenge.length > 120 ? "..." : ""}</div>
+                  <div style={{ fontSize: 14 }}><strong>Example tools:</strong> {data.noneMatch ? "None selected (generating fresh ideas)" : `${data.selectedTools.length} selected`}</div>
+                </div>
+                <Button onClick={generateRecommendations} style={{ fontSize: 17, padding: "16px 40px" }}>Generate Recommendations</Button>
+              </div>
+            )}
+
+            {data.isGenerating && (
+              <div style={{ textAlign: "center", padding: "60px 0" }}>
+                <div style={{ width: 48, height: 48, border: `4px solid ${COLORS.lightGray}`, borderTopColor: COLORS.green, borderRadius: "50%", margin: "0 auto 20px",
+                  animation: "spin 1s linear infinite" }} />
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <h3 style={{ color: COLORS.navy, fontSize: 18, margin: "0 0 8px" }}>Generating your recommendations...</h3>
+                <p style={{ color: "#9CA3AF", fontSize: 14 }}>Analyzing your inputs and building tailored tool specs.</p>
+              </div>
+            )}
+
+            {data.genError && (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <p style={{ color: "#DC2626", fontSize: 15, marginBottom: 16 }}>{data.genError}</p>
+                <Button onClick={generateRecommendations}>Try Again</Button>
+              </div>
+            )}
+
+            {data.recommendations && (
+              <div id="printable-results">
+                <ProgressBar step={5} total={6} />
+                <StepLabel step={5} />
+                <h2 style={{ color: COLORS.navy, fontSize: 22, fontWeight: 800, margin: "8px 0 6px" }}>Your Custom Tool Recommendations</h2>
+                <p style={{ color: "#6B7280", fontSize: 15, marginBottom: 20, lineHeight: 1.5 }}>
+                  Here are {data.recommendations.tools.length} tailored tool concepts based on your planning session. Each includes a spec sheet you can use to build the tool in Solara.
+                </p>
+
+                {/* Pilot callout */}
+                {data.recommendations.pilotRationale && (
+                  <div style={{ background: `linear-gradient(135deg, ${COLORS.navy}, #2A2470)`, borderRadius: 12, padding: 24, marginBottom: 24, color: COLORS.white }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: COLORS.green, marginBottom: 8 }}>Recommended First Pilot</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>{data.recommendations.tools.find(t => t.isRecommendedPilot)?.name}</div>
+                    <div style={{ fontSize: 14, lineHeight: 1.6, opacity: 0.9 }}>{data.recommendations.pilotRationale}</div>
+                  </div>
+                )}
+
+                {/* Tool cards */}
+                {data.recommendations.tools.map((tool, i) => (
+                  <div key={i} style={{ background: COLORS.white, borderRadius: 12, border: tool.isRecommendedPilot ? `2px solid ${COLORS.green}` : tool.isUserPick ? `2px solid ${COLORS.blue}` : "1px solid #E2E4E9", padding: 24, marginBottom: 16, position: "relative" }}>
+                    {tool.isRecommendedPilot && (
+                      <div style={{ position: "absolute", top: -1, right: 20, background: COLORS.green, color: COLORS.white, fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: "0 0 6px 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Start here</div>
+                    )}
+                    {tool.isUserPick && (
+                      <div style={{ position: "absolute", top: -1, right: 20, background: COLORS.blue, color: COLORS.white, fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: "0 0 6px 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Your selection</div>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: tool.isUserPick ? COLORS.blue : [COLORS.green, COLORS.blue, COLORS.teal][i % 3], color: COLORS.white, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14 }}>{i + 1}</div>
+                      <h3 style={{ color: COLORS.navy, fontSize: 18, fontWeight: 700, margin: 0 }}>{tool.name}</h3>
+                      <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: tool.pilotReadiness === "High" ? "#DCFCE7" : tool.pilotReadiness === "Medium" ? "#FEF3C7" : "#FEE2E2",
+                        color: tool.pilotReadiness === "High" ? "#166534" : tool.pilotReadiness === "Medium" ? "#92400E" : "#991B1B" }}>{tool.pilotReadiness} readiness</span>
+                    </div>
+                    <p style={{ fontSize: 14, lineHeight: 1.6, color: COLORS.darkGray, marginBottom: 12 }}>{tool.description}</p>
+                    <p style={{ fontSize: 13, lineHeight: 1.5, color: "#6B7280", marginBottom: 16, fontStyle: "italic" }}>{tool.whyFits}</p>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.navy, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>Input Fields</div>
+                        {tool.fields.map((f, j) => (
+                          <div key={j} style={{ fontSize: 13, marginBottom: 6, lineHeight: 1.4 }}>
+                            <strong style={{ color: COLORS.navy }}>{f.name}:</strong> <span style={{ color: "#6B7280" }}>{f.description}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.navy, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>Knowledge Files</div>
+                        {tool.knowledgeFiles.map((f, j) => (
+                          <div key={j} style={{ fontSize: 13, color: "#6B7280", marginBottom: 4, paddingLeft: 12, position: "relative" }}>
+                            <span style={{ position: "absolute", left: 0, color: COLORS.green }}>•</span>{f}
+                          </div>
+                        ))}
+                        <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.navy, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8, marginTop: 16 }}>Expected Output</div>
+                        <div style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>{tool.expectedOutput}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Export */}
+                <div style={{ background: COLORS.white, borderRadius: 12, border: "1px solid #E2E4E9", padding: 24, textAlign: "center", marginTop: 24 }}>
+                  <h3 style={{ color: COLORS.navy, fontSize: 17, fontWeight: 700, margin: "0 0 8px" }}>Export your planning summary</h3>
+                  <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 16 }}>Share this with your team, bring it to a planning meeting, or use it to start building in Solara.</p>
+                  <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                    <Button onClick={copyToClipboard} variant={copySuccess ? "secondary" : "primary"}>
+                      {copySuccess ? "✓ Copied to clipboard!" : "Copy Summary to Clipboard"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Start over */}
+                <div style={{ textAlign: "center", marginTop: 24 }}>
+                  <Button variant="ghost" onClick={() => { setStep(-1); setData({ priority: null, challenge: "", users: [], hasExemplars: null, exemplarNotes: "", selectedTools: [], noneMatch: false, recommendations: null, isGenerating: false, genError: null }); }}>
+                    ← Start a new session
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Navigation */}
+        {step >= 0 && step < 5 && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 32, paddingTop: 20, borderTop: "1px solid #E2E4E9" }}>
+            <Button variant="ghost" onClick={() => setStep(s => s - 1)}>← Back</Button>
+            <Button onClick={() => { if (step === 4) { setStep(5); } else { setStep(s => s + 1); } }} disabled={!canNext()}>
+              {step === 4 ? "Review & Generate" : "Continue →"}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        * { box-sizing: border-box; }
+      `}</style>
+    </div>
+  );
+}
