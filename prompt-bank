@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solara Prompt Bank</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', Arial, sans-serif; background: #EEEEEE; color: #333333; min-height: 100vh; }
+
+  .header { background: #161242; padding: 18px 32px; display: flex; align-items: center; gap: 10px; }
+  .header-title { color: #1FAA4A; font-size: 18px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  #home { display: block; }
+  #detail { display: none; }
+
+  .home-hero { background: #161242; padding: 28px 32px 36px; text-align: center; }
+  .home-hero h1 { color: #fff; font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+  .home-hero p { color: rgba(255,255,255,0.72); font-size: 14px; max-width: 540px; margin: 0 auto; line-height: 1.65; }
+
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding: 28px 32px 16px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .topic-card {
+    background: #fff; border-radius: 10px; padding: 20px 56px 20px 20px;
+    cursor: pointer; border: 2px solid transparent;
+    transition: border-color 0.18s, transform 0.15s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px rgba(22,18,66,0.08); position: relative; overflow: hidden;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .topic-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: #1FAA4A; border-radius: 10px 0 0 10px; }
+  .topic-card:hover { border-color: #1FAA4A; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(22,18,66,0.13); }
+  .topic-icon { font-size: 28px; flex-shrink: 0; margin-left: 4px; }
+  .topic-card-body { display: flex; flex-direction: column; gap: 3px; }
+  .topic-title { font-size: 14px; font-weight: 700; color: #161242; line-height: 1.3; }
+  .topic-desc { font-size: 12px; color: #555; line-height: 1.45; }
+  .topic-count { font-size: 11px; color: #108A7D; font-weight: 600; margin-top: 4px; }
+  .topic-arrow { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #006DB0; font-size: 20px; font-weight: 700; }
+
+  .home-footer { max-width: 900px; margin: 0 auto 40px; padding: 0 32px; }
+  .info-link {
+    display: flex; align-items: center; gap: 12px;
+    background: #f0faf4; border: 1px solid #c8e6d4; border-radius: 8px;
+    padding: 16px 20px; text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .info-link:hover { background: #d9f0e5; border-color: #1FAA4A; }
+  .info-link-text { font-size: 14px; font-weight: 600; color: #161242; }
+  .info-link-arrow { margin-left: auto; flex-shrink: 0; }
+
+  .detail-header { background: #161242; padding: 18px 32px; display: flex; align-items: center; gap: 16px; }
+  .back-btn {
+    background: none; border: 2px solid rgba(255,255,255,0.4); color: #fff;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;
+    font-family: inherit; transition: background 0.15s, border-color 0.15s;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.12); border-color: #fff; }
+  .detail-header-text h2 { color: #fff; font-size: 18px; font-weight: 800; }
+  .detail-header-text p { color: rgba(255,255,255,0.6); font-size: 12px; margin-top: 2px; }
+
+  .prompts-container { max-width: 860px; margin: 0 auto; padding: 28px 32px 48px; }
+  .use-case-block { margin-bottom: 28px; }
+  .section-heading {
+    font-size: 12px; font-weight: 700; color: #161242; text-transform: uppercase;
+    letter-spacing: 0.09em; margin-bottom: 12px; padding-bottom: 6px;
+    border-bottom: 2px solid #1FAA4A; display: inline-block;
+  }
+  .prompt-card {
+    background: #fff; border-radius: 8px; padding: 16px 52px 16px 16px;
+    margin-bottom: 10px; border-left: 4px solid #1FAA4A;
+    box-shadow: 0 1px 3px rgba(22,18,66,0.07); position: relative;
+  }
+  .prompt-tags { margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .prompt-tag { display: inline-block; background: #EEEEEE; color: #333333; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .tag-student { background: #e8f5fd; color: #006DB0; }
+  .tag-class   { background: #e8f5fd; color: #006DB0; }
+  .doc-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #f0faf4; color: #006DB0; border: 1px solid #c8e6d4;
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    text-decoration: none; transition: background 0.15s, border-color 0.15s;
+  }
+  .doc-link:hover { background: #d9f0e5; border-color: #1FAA4A; }
+  .prompt-note {
+    font-size: 12px; color: #108A7D; background: #f0faf4;
+    border: 1px solid #c8e6d4; border-radius: 6px;
+    padding: 7px 10px; margin-bottom: 8px; line-height: 1.5; font-style: italic;
+  }
+  .prompt-text { font-size: 13.5px; color: #333333; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .copy-btn {
+    position: absolute; top: 14px; right: 12px;
+    background: #fff; border: 1.5px solid #EEEEEE; border-radius: 6px;
+    width: 32px; height: 32px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, border-color 0.15s; color: #555;
+  }
+  .copy-btn:hover { background: #f4f4f4; border-color: #ccc; }
+  .copy-btn.copied { border-color: #1FAA4A; background: #f0faf4; color: #1FAA4A; }
+  .section-divider { height: 1px; background: #EEEEEE; margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">Panorama Education</div>
+</div>
+
+<div id="home">
+  <div class="home-hero">
+    <h1>Solara Prompt Bank</h1>
+    <p>A reference library of sample prompts organized by topic. Click a tile to explore prompts you can copy directly into Solara.</p>
+  </div>
+  <div class="topic-grid" id="topicGrid"></div>
+  <div class="home-footer">
+    <a class="info-link" href="https://academy.panoramaed.com/hc/en-us/articles/35530168104212-What-student-information-is-accessible-in-Solara" target="_blank" rel="noopener">
+      <span style="font-size:20px;flex-shrink:0;">📋</span>
+      <span class="info-link-text">What student information does Solara have access to?</span>
+      <span class="info-link-arrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#006DB0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </span>
+    </a>
+  </div>
+</div>
+
+<div id="detail">
+  <div class="detail-header">
+    <button class="back-btn" onclick="goHome()">&#8592; Home</button>
+    <div class="detail-header-text">
+      <h2 id="detailTitle"></h2>
+      <p id="detailCount"></p>
+    </div>
+  </div>
+  <div class="prompts-container" id="promptsContainer"></div>
+</div>
+
+<script>
+const LINKS = {
+  'Math Error Analysis Re-Teach Criteria': 'https://drive.google.com/file/d/1OU7pfN3tWPkgSYu0iqfFeuSVhRmwjM1u/view?usp=sharing',
+  'Common Core Math Standards': 'https://drive.google.com/file/d/1XjkDjkgkHLTDzXyNuDHvUCBjeMYwuZ70/view?usp=sharing',
+  '4th Grade Social Studies Unit Plan': 'https://drive.google.com/file/d/1zsjTKh_ejHr1r-yIc3cZ3xaZNMtS62Vh/view?usp=drive_link',
+  'UDL Lesson Plan Template': 'https://drive.google.com/file/d/1gmC_RktOHLJdy6NzH_OiZWVVz9UpfbDe/view?usp=drive_link',
+  'Corduroy Lesson Plan': 'https://docs.google.com/document/d/1TWAf3L_SiGAQlvnlTrnXkPqfZxYdM4IB/edit',
+  'The Fox and the Goat Lesson Plan': 'https://drive.google.com/file/d/1l7QUlgVmcChOT8IfBsvipbiOYmrbK4h5/view?usp=drive_link',
+  '2x10 Facilitation Guide': 'https://drive.google.com/file/d/1StcvQRuCTslm6NUK2C96rms7GRX7X_ls/view?usp=sharing',
+  'ES Tech Policies': 'https://drive.google.com/file/d/1jFVZk9OqrYJZ-j1rAvP9c5aXGfymV0wt/view?usp=drive_link',
+};
+
+function linkIcon() {
+  return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+}
+
+function docTag(name) {
+  const url = LINKS[name];
+  return url
+    ? `<a class="doc-link" href="${url}" target="_blank" rel="noopener">${linkIcon()} ${name}</a>`
+    : `<span class="prompt-tag" style="background:#fff3e0;color:#108A7D;">[Upload document]</span>`;
+}
+
+function tagClass(c) {
+  if (c === 'student') return 'tag-student';
+  if (c === 'class') return 'tag-class';
+  return '';
+}
+
+const topics = [
+  { id: "academic", icon: "📚", title: "Academic & Instructional", desc: "Lesson planning, assessments, rubrics, differentiation, ELL supports, and data analysis.",
+    sections: [
+      { heading: "Lesson Planning", prompts: [
+        { tags:[{l:"Single-lesson plan"}], docs:[],
+          text:"Create a 45 to 60 minute lesson activity for 6th grade math that demonstrates real-world applications of slope-intercept form. Include a culturally relevant context students will find engaging, and provide a step-by-step activity with both teacher instructions and student directions." },
+        { tags:[{l:"Multi-day lesson plan"}], docs:[],
+          text:"Create 2 days of sequential lesson plans for a 5th grade ELA class focused on determining themes in a literary text. For each day, include learning objectives in student-friendly language and a clear lesson structure with warm-up, mini-lesson, guided practice, independent practice, and closure." },
+        { tags:[{l:"Standards-aligned lesson"}], docs:[],
+          text:"Create a 60-minute lesson plan on photosynthesis for a 7th grade science class. Include learning objectives aligned to NGSS (if applicable) and a list of materials needed." },
+        { tags:[{l:"Re-teach lesson from a document"}], docs:["Math Error Analysis Re-Teach Criteria"],
+          text:"[Upload document: Math Error Analysis Re-Teach Criteria]\n\nUsing the uploaded re-teach criteria document, identify the key criteria for effective re-teaching, then create a small-group re-teach lesson for students who are still building understanding of slope-intercept form." },
+      ]},
+      { heading: "Worksheets", prompts: [
+        { tags:[{l:"Multiple-choice problem set"}], docs:[],
+          text:"Create a multiple choice problem set for 6th grade science focused on [insert topic, e.g., ecosystems or energy transfer]. The set should take about 10 minutes to complete. Include 6 to 8 questions that vary in type (vocabulary, application, data interpretation, real-world scenarios) and span DOK levels 1 to 3." },
+        { tags:[{l:"Skill-based worksheet"}], docs:[],
+          text:"Create a worksheet for 7th grade students with 10 sentences that contain grammatical errors. Focus on [insert skill, e.g., subject-verb agreement, punctuation, or sentence fragments]. Make sure the errors are realistic and commonly made by students at this grade level." },
+      ]},
+      { heading: "Quiz and Assessment Creation", prompts: [
+        { tags:[{l:"Short quiz with answer key"}], docs:[],
+          text:"1. Create a 5-question True/False quiz for 4th grade about Westward Expansion in the United States during the 1800s. Make the questions clear, accurate, and age-appropriate.\n\n2. Now create a teacher version with the correct answers and a one-sentence explanation for each answer." },
+        { tags:[{l:"Mixed-format quiz with rubric"}], docs:[],
+          text:"1. Create a 6th grade quiz on Ancient Egypt that covers pyramids, pharaohs, hieroglyphics, and daily life. Include a mix of multiple choice and short response questions.\n\n2. Add one open-response question about daily life in Ancient Egypt and create a 5-point rubric in student-friendly language." },
+        { tags:[{l:"Standards-aligned quiz"}], docs:["Common Core Math Standards"],
+          text:"[Upload document: Common Core Math Standards]\n\nUsing the attached standards document, create an 8-question multiple choice quiz aligned to 4.OA.3 and 4.OA.4. Add an answer key and label each question by standard." },
+      ]},
+      { heading: "HQIM Alignment", prompts: [
+        { tags:[{l:"Lesson plan review for HQIM alignment"}], docs:[],
+          text:"[Upload document: lesson plan]\n\nEvaluate the attached lesson plan for High Quality Instructional Materials (HQIM) alignment. Analyze alignment to grade-level standards, identify strengths, and provide a brief overall summary of the lesson's HQIM alignment." },
+        { tags:[{l:"Standards mapping for a problem"}], docs:["Common Core Math Standards"],
+          text:"[Upload document: Common Core Math Standards]\n\nUsing the attached 6th grade Common Core Math Standards document, identify which standard or standards best align to this problem: \"If Sarah has ⅔ of a pizza and eats ¼ of it, how much pizza does she have left?\"" },
+      ]},
+      { heading: "Rubric Creation", prompts: [
+        { tags:[{l:"Writing rubric with sample response"}], docs:[],
+          text:"1. Create a 3-point rubric for a 3rd grade writing assignment aligned to Common Core ELA L.3.A, focusing on capitalization, punctuation, and spelling. Use clear, family-friendly language.\n\n2. The assignment is: \"Think about a person who is special to you. Write about why this person is special and describe a few experiences you have had together.\" Include a sample response that would earn a level 3." },
+        { tags:[{l:"Group project rubric"}], docs:[],
+          text:"Create a 4-level rubric for a high school history group project. Assess collaboration, research quality, historical understanding, and presentation skills. Make the descriptors specific enough for students to use before they begin the project." },
+        { tags:[{l:"Unit-aligned rubric from a document"}], docs:["4th Grade Social Studies Unit Plan"],
+          text:"[Upload document: 4th Grade Social Studies Unit Plan]\n\nUsing the attached 4th grade Social Studies unit plan, create a 5-point rubric that measures student mastery of the unit's main learning goals. Make the criteria student-friendly and aligned to the key knowledge and skills in the unit." },
+      ]},
+      { heading: "Cross-Curricular Connections", prompts: [
+        { tags:[{l:"Two-subject integrated lesson"}], docs:[],
+          text:"Design a cross-curricular lesson plan for 8th grade that integrates history and art using the Renaissance as the central theme. Connect historical context (humanism, cultural shifts) with artistic developments, and include a structured lesson flow with warm-up, mini-lesson, activity, and closure." },
+        { tags:[{l:"Theme-based literature and history activity"}], docs:[],
+          text:"1. My 10th grade students are reading Catcher in the Rye in English, and in history we are studying the 1950s. Identify key themes that connect the novel to the historical context (e.g., conformity vs. individuality, identity, societal expectations).\n\n2. Then design a 30-minute cross-curricular activity that helps students analyze how these themes appear in both the novel and 1950s society. Include teacher instructions, student directions, and sample discussion questions." },
+      ]},
+      { heading: "Re-Teaching and Misconception Support", prompts: [
+        { tags:[{l:"Targeted re-teach for a specific misconception"}], docs:[],
+          text:"1. My 4th grade students just finished an exit ticket on equivalent fractions, and many of them are confusing the numerator and denominator. Create a 15-minute re-teach plan that directly addresses this misconception.\n\n2. Include 3 quick checks for understanding I can use during the lesson." },
+        { tags:[{l:"Mini-lesson to address a science misconception"}], docs:[],
+          text:"My 7th grade science students think seasons are caused by Earth being closer to the sun in summer. Create a short mini-lesson to address this misconception in a clear, age-appropriate way. Include one simple analogy, one visual idea, and one short reflection prompt." },
+      ]},
+      { heading: "Universal Design for Learning (UDL)", prompts: [
+        { tags:[{l:"UDL-aligned digital activities"}], docs:[],
+          text:"I want to use technology to help my 4th graders practice multiplication using Universal Design for Learning (UDL) principles. Suggest 5 age-appropriate digital activity ideas that incorporate multiple means of engagement (motivation, choice, interest) and multiple means of representation (different ways content is presented)." },
+        { tags:[{l:"Accessibility strategies for K-2"}], docs:[],
+          text:"Using Universal Design for Learning (UDL) principles, provide strategies to make classroom content accessible for elementary students (K-2), specifically for students with visual impairments and students who are nonverbal." },
+        { tags:[{l:"UDL plan from a template"}], docs:["UDL Lesson Plan Template"],
+          text:"[Upload document: UDL Lesson Plan Template]\n\n1. Using the attached UDL lesson plan format, create a plan that covers the NGSS science standard for 5th grade PS1 Matter and its Interactions: Understand that matter is made up of particles too small to be seen.\n\n2. Create the assessment for this lesson. Students will only have 15 minutes to complete it." },
+        { tags:[{l:"Adapting an existing lesson with UDL"}], docs:["Corduroy Lesson Plan"],
+          text:"[Upload document: Corduroy Lesson Plan]\n\n1. I'm teaching this lesson and want to make sure it is accessible to all students, including students with visual impairments, ADHD, and English Language Learners. Add suggestions that incorporate UDL principles.\n\n2. How can I incorporate technology?" },
+      ]},
+      { heading: "Differentiated Instruction", prompts: [
+        { tags:[{l:"Class-data differentiation with a lesson"},{l:"[Add class]",c:"class"}], docs:["Corduroy Lesson Plan"],
+          text:"[Add class] [Upload document: Corduroy Lesson Plan]\n\nI'm teaching this lesson plan and need support with two things. First, create an extension activity for students ready for additional challenge. Then, use the available class data to suggest small-group supports for students who may benefit from added scaffolding. Organize the recommendations by student need, and include practical teacher moves I can use during the lesson." },
+        { tags:[{l:"Individual student in a lesson"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nI'm teaching a lesson on [topic] to my [grade level]. Based on this student's available data, what might be challenging for them in this lesson, and what specific supports could help them be successful? Keep the supports lesson-level and practical for real-time use, not a separate intervention plan." },
+        { tags:[{l:"Individual differentiation grounded in an IEP"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: student IEP]\n\nI'm teaching this [lesson or unit] on [topic]. Using the attached IEP and this student's available data, suggest specific supports I can build into the lesson so it's accessible and rigorous for this student. Focus on lesson-level moves, not a separate intervention plan." },
+        { tags:[{l:"Adapt a lesson for a subgroup using class data"},{l:"[Add class]",c:"class"}], docs:[],
+          text:"[Add class]\n\nHow can I adapt this lesson on [topic] for [my English Language Learners / my students with IEPs / my students reading below grade level]? Use the available class data to make the suggestions specific to the students I'm teaching." },
+        { tags:[{l:"Differentiated lesson with class-targeted follow-up"},{l:"[Add class]",c:"class"}], docs:[],
+          text:"[Add class]\n\n1. Generate a differentiated lesson plan on literary themes for 8th graders that includes interactive readings, group discussions, and an optional creative writing task or multimedia project for assessment.\n\n2. How can I adapt this lesson for my English Language Learners?" },
+        { tags:[{l:"Modality-based differentiation (no student data)"}], docs:[],
+          text:"Provide three different ways to teach the concept of fractions to 4th grade students: one for visual learners, one for kinesthetic learners, and one for auditory learners." },
+      ]},
+      { heading: "Multiple Ways to Show Understanding", prompts: [
+        { tags:[{l:"Varied output options for a concept"}], docs:[],
+          text:"1. What are 4 different ways 2nd grade students could show their understanding of measurement? Include one written, one artistic, one digital, and one verbal option.\n\n2. For each option, include what the teacher should look for as evidence of understanding." },
+        { tags:[{l:"Output options with collaborative extensions"}], docs:[],
+          text:"1. I teach 9th grade biology. Give me 3 different ways students can show their understanding of how DNA and chromosomes influence traits and patterns of inheritance.\n\n2. Add 2 more options that are collaborative and explain what each one would show." },
+        { tags:[{l:"Output options aligned to a lesson"}], docs:["The Fox and the Goat Lesson Plan"],
+          text:"[Upload document: The Fox and the Goat Lesson Plan]\n\n1. Using the attached lesson plan, suggest different ways students could show their understanding of the lesson objective. Include a variety of output types.\n\n2. Organize the ideas by modality, such as visual, verbal, written, and performance-based." },
+      ]},
+      { heading: "Localization and Real-World Context", prompts: [
+        { tags:[{l:"Place-based math examples"}], docs:[],
+          text:"1. I'm teaching a 7th grade math lesson on percentages. Create a set of engaging, real-world examples and scenarios that help students understand percentages in a meaningful way. Base the examples in [insert place] so they feel relevant and familiar. Include a mix of contexts such as shopping, sports, food, school, and community events.\n\n2. Can you suggest specific word problems related to these examples?" },
+        { tags:[{l:"Local history connections"}], docs:[],
+          text:"1. I'm teaching an 8th grade social studies unit about the Civil Rights Movement and live in [insert place]. Are there any specific events related to the Civil Rights Movement that occurred relatively locally?\n\n2. Tell me more about [insert one of the specific suggestions above]." },
+      ]},
+      { heading: "Technology Alignment", prompts: [
+        { tags:[{l:"Free tools for skill practice"}], docs:[],
+          text:"1. Generate a list of free, age-appropriate websites or apps that 4th graders can use to practice multiplication.\n\n2. For each one, briefly explain what students can do with it and why it would be useful." },
+        { tags:[{l:"Tech integration aligned to district policy"}], docs:["Corduroy Lesson Plan"],
+          text:"[Upload document: Corduroy Lesson Plan, District Technology Policy]\n\nUsing the attached lesson plan and district technology policy, suggest a few realistic ways to incorporate technology into the lesson. Make sure the ideas align to the lesson goal and district expectations, and note any activities that would need teacher support." },
+      ]},
+      { heading: "Supports for English Language Learners", prompts: [
+        { tags:[{l:"Class-data informed adaptations"},{l:"[Add class]",c:"class"}], docs:[],
+          text:"[Add class]\n\n1. I'm teaching a lesson on character feelings in 4th grade. Using the available class data, what are some ways to adapt this lesson for the English Language Learners in my class?\n\n2. Provide a few more sentence frames, vocabulary supports, and discussion routines that could help students understand and describe character feelings." },
+        { tags:[{l:"Lesson adaptations with class context"},{l:"[Add class]",c:"class"}], docs:["Corduroy Lesson Plan"],
+          text:"[Add class] [Upload document: Corduroy Lesson Plan]\n\n1. Using the attached lesson plan and the class I added, what are some specific ways to adapt this lesson for the English Language Learners in my class?\n\n2. Do you have any other suggestions for modifying the exit ticket?" },
+        { tags:[{l:"Reading assignment modification"},{l:"[Add class]",c:"class"}], docs:[],
+          text:"[Add class] [Upload document: Reading Assignment]\n\nI need to modify a reading assignment on ecosystems for my 6th grade class with several English Language Learners. Using the reading assignment and available class data, including students' ELPA scores and reading assessment scores when available, suggest strategies for simplifying language, adding visuals, and supporting comprehension without changing the core content." },
+      ]},
+      { heading: "Academic Data Analysis", prompts: [
+        { tags:[{l:"Strengths and growth summary"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nSummarize this student's current academic strengths and areas for continued support across their available academic data. Organize the response into three sections: strengths, areas for continued growth, and recommended next steps for instruction." },
+        { tags:[{l:"Multi-year subject trend"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. How has this student performed in reading over the past 2 years?\n\n2. Summarize any trends, notable changes over time, and areas where the student may benefit from added support." },
+        { tags:[{l:"Group strengths and growth patterns"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] (or [Add class])\n\n1. Summarize the academic strengths and areas for continued growth for these students: [student 1], [student 2], [student 3].\n\n2. Identify patterns across the group and note any course-performance trends that may inform small-group instruction or follow-up support." },
+      ]},
+    ]
+  },
+  {
+    id: "family", icon: "👨‍👩‍👧", title: "Family Engagement",
+    sections: [
+      { heading: "Newsletter Creation", prompts: [
+        { tags:[{l:"Monthly classroom newsletter"}], docs:[],
+          text:"1. Draft a monthly newsletter template for my 6th grade classroom with a warm, welcoming message for families.\n\n2. In the opening, include a short note about why attendance matters that sounds encouraging, understanding, and clear." },
+        { tags:[{l:"Family involvement paragraph"}], docs:[],
+          text:"Write a short paragraph for my 4th grade classroom newsletter that encourages families to get involved in classroom activities like field trips and projects. Mention our upcoming aquarium field trip on December 13 and keep the tone upbeat and family-friendly." },
+      ]},
+      { heading: "Conference Prep", prompts: [
+        { tags:[{l:"Family conference agenda"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. I have a 15-minute family conference for this student. Help me prepare an agenda that includes a brief strengths-based summary, current areas for continued growth based on available data, and suggestions for how the family can support learning at home.\n\n2. We are having students lead their conferences. Create a brief overview that highlights strengths, areas for continued growth, and open-ended prompts educators can use to support student reflection during the conference." },
+      ]},
+      { heading: "Parent Email", prompts: [
+        { tags:[{l:"Email about attendance"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Draft an email to this student's caregivers about recent absences and areas where the student may benefit from support. Use strengths-based language, explain why attendance matters, and invite the family into partnership.\n\n2. Translate the email into Spanish." },
+        { tags:[{l:"Field trip permission slip letter"}], docs:[],
+          text:"1. Draft a letter to include with a permission slip for an upcoming field trip to [insert location]. The trip runs 9:30 to 1:30 on 1/26. The bus leaves promptly at 9:30, so students cannot be late. Permission slips are due by 1/20 or students will not be able to attend.\n\n2. Add a line directing families to contact the classroom teacher with any questions about the trip." },
+      ]},
+      { heading: "Parent Text", prompts: [
+        { tags:[{l:"Schedule reminder text"}], docs:[],
+          text:"1. Write a reminder text for families about early dismissal this Friday at 1:30 PM due to staff professional development.\n\n2. Include that questions about bus transportation should be directed to Amy Smith." },
+        { tags:[{l:"Tactful attendance text"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Write a tactful text message to this student's family about their recent attendance. Include the number of absences in the past week and how that compares to the rest of the year.\n\n2. Make the message shorter, warm, and appreciative." },
+      ]},
+      { heading: "Challenging Conversation Scripts", prompts: [
+        { tags:[{l:"Colleague-to-colleague script"}], docs:[],
+          text:"Draft a realistic, professional conversation between two teachers where one respectfully addresses a colleague who has repeatedly not completed a shared responsibility (e.g., data entry, lesson planning, or student support follow-through)." },
+        { tags:[{l:"Caregiver behavior conversation"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Generate a meeting script for a teacher meeting with this student's caregiver to discuss classroom behavior patterns. Emphasize empathy, student strengths, and practical ways the family and school can partner on support.\n\n2. Include specific ways to build on this student's strengths." },
+        { tags:[{l:"School leader response script"}], docs:[],
+          text:"Write a script for a school leader responding to a caregiver's concern about student engagement and relevance in the instructional materials. Include language about how teachers are trained to recognize and respond to different student needs, perspectives, and learning styles." },
+      ]},
+    ]
+  },
+  {
+    id: "attendance", icon: "📅", title: "Attendance",
+    sections: [
+      { heading: "Trends and Summary", prompts: [
+        { tags:[{l:"Individual attendance summary and goals"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Summarize this student's attendance over the past month. Include any trends in absences, tardies, or patterns by class or day when available.\n\n2. Suggest two realistic attendance goals the student could work toward over the next month, along with one school-based support and one family partnership strategy." },
+        { tags:[{l:"Group attendance trends"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] (or [Add class])\n\n1. Summarize attendance trends for [student 1], [student 2], [student 3], and [student 4]. Include strengths, any patterns that may need follow-up, and shared trends across the group.\n\n2. Focus the analysis on the past 4 weeks." },
+      ]},
+      { heading: "Communication", prompts: [
+        { tags:[{l:"Family text about attendance"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Write a tactful text message to this student's family about their recent attendance. Include the number of absences over the past week and how that compares to the rest of the year.\n\n2. Make it shorter, friendlier, and appreciative in tone." },
+        { tags:[{l:"Schoolwide attendance initiative email"}], docs:[],
+          text:"1. Draft an email to all families about a new school attendance initiative. Our goal is for students to arrive on time 95% of school days through March 1. Each day a student is on time, they earn a raffle ticket. Three tickets per grade will be drawn every Friday morning at assembly.\n\n2. Include a warm thank-you to families for their partnership and support." },
+      ]},
+      { heading: "Re-Entry Planning", prompts: [
+        { tags:[{l:"Simple re-entry plan"}], docs:[],
+          text:"Create a simple re-entry plan for a student returning to school after several absences. Include 3 teacher moves for the first day back and 2 ways to help the student feel welcomed without drawing extra attention." },
+        { tags:[{l:"Check-in conversation script"}], docs:[],
+          text:"Draft a short check-in conversation I can use with a middle school student who has been absent frequently. Keep the tone supportive, curious, and focused on problem-solving." },
+      ]},
+    ]
+  },
+  {
+    id: "behavior", icon: "🤝", title: "Behavior",
+    sections: [
+      { heading: "Behavior Reflection", prompts: [
+        { tags:[{l:"Student reflection sheet"}], docs:[],
+          text:"Create a student reflection sheet for a 5th grader who had trouble staying respectful during group work. Include questions that help the student reflect on what happened, how others were affected, and what they could try next time." },
+        { tags:[{l:"Classroom debrief script"}], docs:[],
+          text:"Write a short debrief script I can use after a classroom disruption to help students reset and refocus. Keep the tone calm, respectful, and restorative." },
+      ]},
+      { heading: "Behavior Support Planning", prompts: [
+        { tags:[{l:"Strategies for a specific behavior"}], docs:[],
+          text:"1. I have a student who often calls out during class and has trouble waiting their turn to speak. Suggest 4 supportive strategies I can use during instruction to help them participate more appropriately.\n\n2. For each strategy, explain when to use it and what success might look like." },
+        { tags:[{l:"Behavior support plan"}], docs:[],
+          text:"Help me create a simple behavior support plan for a student who becomes frustrated and shuts down during independent work. Include likely triggers, 3 teacher responses to use in the moment, and 2 proactive supports I can put in place before the behavior happens." },
+        { tags:[{l:"Data-grounded support plan"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nUsing this student's available behavior data, summarize incident patterns (location, time of day, infraction type, severity, role) and suggest a simple support plan. Include 2 proactive supports, 3 in-the-moment teacher responses, and a check-in cadence I can use to monitor progress." },
+      ]},
+    ]
+  },
+  {
+    id: "lifeskills", icon: "🌱", title: "Life Skills",
+    sections: [
+      { heading: "Trends and Summary", prompts: [
+        { tags:[{l:"Strengths and strategies summary"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Summarize this student's life skills and academic data, including strengths, areas for continued growth, and any important patterns I should know as their teacher.\n\n2. Suggest a few specific classroom strategies that could help support this student." },
+        { tags:[{l:"Small-group focus area summary"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. I have a small group with [student 1], [student 2], and [student 3] focused on emotion regulation. Summarize how each student is doing in this area based on available data.\n\n2. Include a brief summary of each student's attendance over the past 2 weeks." },
+        { tags:[{l:"Strengths-based communication"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Use this student's survey results to suggest how I could communicate areas where the student is thriving and areas where they may benefit from support.\n\n2. Keep the language strengths-based and appropriate for sharing with caregivers or colleagues." },
+      ]},
+      { heading: "Support Plan", prompts: [
+        { tags:[{l:"Conflict resolution and relationship skills"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Suggest individualized strategies to help this student build stronger conflict resolution and relationship skills during peer interactions.\n\n2. Include 2 small-group activities that could reinforce these skills." },
+        { tags:[{l:"Self-advocacy role play"}], docs:[],
+          text:"1. I'm a 5th grade teacher. Draft a few role-playing scenarios for groups of 4 students to practice self-advocacy in a respectful way.\n\n2. Write clear participation directions I can use to set students up for success.\n\n3. Suggest 2 follow-up activities to reinforce the skills from the role play." },
+        { tags:[{l:"Relationship-building plan from a guide"},{l:"[Add student(s)]",c:"student"}], docs:["2x10 Facilitation Guide"],
+          text:"[Add student(s)] [Upload document: 2x10 Facilitation Guide]\n\n1. Use the attached 2x10 Facilitation Guide to create a support plan for this student.\n\n2. Include a few relationship-building questions I could ask based on the student's interests." },
+      ]},
+    ]
+  },
+  {
+    id: "classroom", icon: "🏫", title: "Classroom Management",
+    sections: [
+      { heading: "Engagement", prompts: [
+        { tags:[{l:"Engagement activity for a specific lesson"}], docs:["Corduroy Lesson Plan"],
+          text:"[Upload document: Corduroy Lesson Plan]\n\n1. I'd like to plan a 10-minute engagement activity to get my students excited for this lesson on Corduroy.\n\n2. Help me script the language to introduce this activity to my class." },
+        { tags:[{l:"Real-world engagement activity"}], docs:[],
+          text:"I'm teaching adding and subtracting fractions. Create an engaging activity that brings in real-world examples and ideas for tangibles students could use in class to support their learning." },
+      ]},
+      { heading: "Policies and Expectations", prompts: [
+        { tags:[{l:"Reset classroom norms"}], docs:[],
+          text:"1. I want to reset classroom norms after a disruptive week. Help me write a short, positive message I can share with students about why we are revisiting our expectations.\n\n2. Create the text for a simple visual anchor chart I could recreate with 3 to 5 core expectations in student-friendly language." },
+        { tags:[{l:"Device-use policy and intro script"}], docs:[],
+          text:"1. Help me draft a classroom policy for device use during independent work time. I want it to emphasize student responsibility, focus, and self-monitoring.\n\n2. Write a short script I can use to introduce the policy in a supportive and encouraging way." },
+      ]},
+      { heading: "Role Playing Scenarios", prompts: [
+        { tags:[{l:"Feedback skills practice"}], docs:[],
+          text:"1. Create 3 short role-playing scenarios to help students practice giving and receiving feedback respectfully.\n\n2. Suggest debrief questions I can ask students after each scenario to deepen reflection." },
+        { tags:[{l:"Peer pressure scenarios"}], docs:[],
+          text:"1. I'm teaching my students how to handle peer pressure. Draft 2 realistic scenarios students might face and script 1 to 2 possible student responses for each.\n\n2. Include one variation for younger students (9th and 10th graders) and one for older students (11th and 12th graders)." },
+      ]},
+    ]
+  },
+  {
+    id: "mtss", icon: "🎯", title: "Interventions & MTSS",
+    sections: [
+      { heading: "Goal Setting", prompts: [
+        { tags:[{l:"SMART ELA intervention goal"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Write a SMART goal for this student for a 6-week ELA intervention focused on improving literal comprehension.\n\n2. Suggest 1 to 2 simple ways I could monitor progress toward this goal." },
+        { tags:[{l:"Life skills goal in SMART format"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Write a life skills intervention goal for this student focused on one specific skill area.\n\n2. Revise it into a SMART goal with clear criteria for success." },
+        { tags:[{l:"Group math goal"},{l:"[Add class]",c:"class"}], docs:[],
+          text:"[Add class] (or [Add student(s)])\n\nCreate a measurable intervention goal for a group of 5th grade students who are working on subtraction with regrouping beyond 1,000. Make the goal specific enough to track over time." },
+      ]},
+      { heading: "Intervention Planning", prompts: [
+        { tags:[{l:"Create an intervention plan"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          note:"Solara can both help to draft intervention plans as well as save those plans on the specified student's profile in Student Success using an AI-powered workflow.",
+          text:"[Add student(s)]\n\nHelp me create an intervention for [student name] focused on reading skills. I'm envisioning a Tier 2 support but want your recommendations based on their data." },
+      ]},
+      { heading: "Progress Monitoring", prompts: [
+        { tags:[{l:"Data collection tool options"}], docs:[],
+          text:"1. Suggest 3 different data collection tools I could use to monitor progress for a student learning to identify 2D and 3D shapes.\n\n2. Briefly explain what each tool would measure and when it would be best to use." },
+        { tags:[{l:"Observation form"}], docs:[],
+          text:"1. Create an observation form I can use to collect data on whether a student is making eye contact while speaking.\n\n2. Add a section for open-ended observation notes." },
+        { tags:[{l:"Weekly progress checkpoints"}], docs:[],
+          text:"Design weekly progress checkpoints for this goal: \"[student name] will be able to [insert goal, or use: count backwards from 10 to 0 with 90% accuracy]\" over 6 weeks. For each checkpoint, include what skill should be measured and what success might look like." },
+      ]},
+      { heading: "MTSS Meetings", prompts: [
+        { tags:[{l:"Pre-meeting summary for one student"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nI have an MTSS meeting tomorrow for this student. Prepare a concise meeting summary that includes academic progress, behavior data when available, recent attendance trends, current interventions, and recommended next steps. Include strategies the school and family can use to support the student." },
+        { tags:[{l:"Discussion questions for emotion regulation"}], docs:[],
+          text:"What are three questions I can ask during an MTSS meeting to better understand how to support a student who is building emotion regulation skills?" },
+        { tags:[{l:"Strategy recommendations from data"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nWhat are three to four strategies I can recommend for this student based on available data and their areas for continued growth?" },
+      ]},
+    ]
+  },
+  {
+    id: "sped", icon: "🏷️", title: "Special Education",
+    sections: [
+      { heading: "IEP Support", prompts: [
+        { tags:[{l:"Summarize an IEP for classroom use"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: student IEP]\n\nSummarize this student's IEP in plain language for classroom use. Include the disability category, primary goals, accommodations, modifications, and service minutes. Then suggest a few specific moves I can make in everyday instruction to support this student." },
+        { tags:[{l:"Translate IEP goals into classroom strategies"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: student IEP]\n\nUsing the attached IEP, suggest 3 to 5 classroom-level strategies I can use to support this student's progress toward their goals. Tie each strategy to a specific goal area in the IEP." },
+        { tags:[{l:"Draft IEP present levels (PLAAFP)"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: prior IEP or recent assessment data]\n\nDraft a Present Levels of Academic Achievement and Functional Performance (PLAAFP) statement for this student using available academic and life skills data plus the attached documents. Include strengths, areas of concern, and impact on access to the general curriculum. Flag any data points that need verification before finalizing." },
+        { tags:[{l:"Draft SMART IEP goal options"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nBased on this student's available academic data and the area of need [insert: e.g., reading fluency, written expression, math computation], draft 2 SMART IEP goal options. Include baseline references from the data, the targeted skill, the condition, the criterion, and the timeframe." },
+        { tags:[{l:"Prep for an IEP meeting"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nI have an IEP meeting coming up for this student. Help me prepare a brief summary that includes current strengths, recent academic and behavior data, attendance trends, progress on current interventions, and 2 to 3 questions worth raising with the team." },
+        { tags:[{l:"Individual differentiation grounded in an IEP"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: student IEP]\n\nI'm teaching this [lesson or unit] on [topic]. Using the attached IEP and this student's available data, suggest specific supports I can build into the lesson so it's accessible and rigorous for this student. Focus on lesson-level moves, not a separate intervention plan." },
+      ]},
+      { heading: "504 Plans", prompts: [
+        { tags:[{l:"Summarize and apply a 504 plan"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: 504 plan]\n\nSummarize this student's 504 plan in plain language. Then suggest specific ways I can implement the accommodations in my [subject] class." },
+        { tags:[{l:"Draft a 504 plan starter"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: medical or eligibility documentation]\n\nUsing available student data and the attached documentation, draft a starting 504 plan with proposed accommodations. Flag anything that would need a 504 team decision rather than an AI suggestion." },
+      ]},
+      { heading: "Reading Improvement Plans (RIMPs)", prompts: [
+        { tags:[{l:"Draft a RIMP from available data"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nDraft a Reading Improvement Plan for this student using available reading assessment data, attendance trends, and any existing intervention data. Include current reading levels, areas of need, proposed strategies, a progress monitoring approach, and family communication notes. Flag any sections that need team input before finalizing." },
+      ]},
+      { heading: "Co-Teaching and General Ed Collaboration", prompts: [
+        { tags:[{l:"Plan supports across a co-taught lesson"},{l:"[Add class]",c:"class"}], docs:[],
+          text:"[Add class] [Upload document: lesson plan]\n\nI co-teach this class. Using the attached lesson plan and available class data, identify which students may need targeted support, what supports the SpEd co-teacher could provide during each part of the lesson, and which moments would be best for parallel or station teaching." },
+        { tags:[{l:"Brief a general ed teacher on a student"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: student IEP]\n\nDraft a one-page brief for a general ed teacher about this student. Include strengths, the accommodations and modifications they need to implement, what to watch for, and how to contact me with questions. Keep it practical and respectful of the teacher's time." },
+      ]},
+    ]
+  },
+  {
+    id: "counseling", icon: "🎓", title: "School & College Counseling",
+    sections: [
+      { heading: "College Exploration", prompts: [
+        { tags:[{l:"Postsecondary fit summary"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\n1. Summarize this student's academic and life skills data, including strengths, areas for continued growth, and the types of postsecondary programs that may be a good fit.\n\n2. Recommend a few colleges, training programs, or pathways within driving distance of [insert location] that could match their profile." },
+      ]},
+      { heading: "Letter of Recommendation", prompts: [
+        { tags:[{l:"Program-specific recommendation letter"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)] [Upload document: program description and entrance criteria]\n\nDraft a college recommendation letter from the perspective of a teacher for this student to attend [Program]. Use the attached program description and entrance criteria to highlight the student's strengths as they relate to the program." },
+      ]},
+    ]
+  },
+  {
+    id: "admin", icon: "📋", title: "Administrative Tasks",
+    sections: [
+      { heading: "Meeting Prep and Summary", prompts: [
+        { tags:[{l:"MTSS meeting agenda"}], docs:[],
+          text:"1. Create a 45-minute MTSS meeting agenda to discuss [student 1] and [student 2]. The goal is to decide whether either student should move to Tier 2 supports.\n\n2. Include time for reviewing current data, discussing interventions already tried, and agreeing on next steps." },
+        { tags:[{l:"Recurring PLC agenda"}], docs:[],
+          text:"1. Create a recurring agenda for a 30-minute elementary grade-level PLC that meets every other week. Our schoolwide goal is for 90% of students to read at or above grade level.\n\n2. Make the agenda data-driven, include time for teacher collaboration, and build in space for one participant to share a problem of practice and get support from the group." },
+      ]},
+      { heading: "Document Creation", prompts: [
+        { tags:[{l:"Family-facing policy summary"}], docs:[],
+          text:"1. Draft a parent-facing summary of our district's new cell phone policy. Students who bring phones to school must place them in a lockbox at the start of the day and will not have access during school hours. If a student is caught with a phone, it will be treated as a minor behavior incident and addressed through the district behavior policy.\n\n2. Begin with a short paragraph explaining that this policy is being implemented in response to community feedback and research." },
+        { tags:[{l:"Plain-language policy rewrite"}], docs:["ES Tech Policies"],
+          text:"[Upload document: ES Tech Policies]\n\n1. Using the attached technology policy, suggest concrete ways to simplify the language and improve clarity for families and staff.\n\n2. Create a plain-language summary with the 3 to 5 most important points to include in a handout or email." },
+      ]},
+      { heading: "Professional Development Planning", prompts: [
+        { tags:[{l:"60-minute survey-data PD agenda"}], docs:[],
+          text:"Draft a PD agenda for a 60-minute session focused on building staff understanding of our student survey data. The PD should be interactive and collaborative. Include suggested prompts and activities." },
+        { tags:[{l:"90-minute new-teacher PD with scavenger hunt"}], docs:["ES Tech Policies"],
+          text:"[Upload document: ES Tech Policies]\n\n1. Draft a 90-minute PD session agenda for all new teachers that outlines the attached technology policies. Include engaging activities that help participants apply the policies in realistic scenarios.\n\n2. Create the scavenger hunt that would take place in this session." },
+      ]},
+    ]
+  },
+];
+
+function countPrompts(t) { return t.sections.reduce((s,sec) => s + sec.prompts.length, 0); }
+
+function renderHome() {
+  document.getElementById('topicGrid').innerHTML = topics.map(t => `
+    <div class="topic-card" onclick="openTopic('${t.id}')">
+      <span class="topic-icon">${t.icon}</span>
+      <div class="topic-card-body">
+        <div class="topic-title">${t.title}</div>
+        <div class="topic-desc">${t.desc}</div>
+        <div class="topic-count">${countPrompts(t)} prompts</div>
+      </div>
+      <div class="topic-arrow">›</div>
+    </div>`).join('');
+}
+
+function openTopic(id) {
+  const topic = topics.find(t => t.id === id);
+  if (!topic) return;
+  document.getElementById('detailTitle').textContent = topic.icon + '  ' + topic.title;
+  document.getElementById('detailCount').textContent =
+    countPrompts(topic) + ' prompts across ' + topic.sections.length + ' categor' + (topic.sections.length !== 1 ? 'ies' : 'y');
+
+  let html = '';
+  topic.sections.forEach((sec, si) => {
+    html += `<div class="use-case-block"><div class="section-heading">${sec.heading}</div>`;
+    sec.prompts.forEach((p) => {
+      const uid = Math.random().toString(36).slice(2);
+      let tagsHtml = p.tags.map(t => `<span class="prompt-tag ${tagClass(t.c||'')}">${t.l}</span>`).join('');
+      if (p.docs && p.docs.length) p.docs.forEach(d => { tagsHtml += docTag(d); });
+      const safeText = p.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      html += `
+        <div class="prompt-card">
+          <div class="prompt-tags">${tagsHtml}</div>
+          ${p.note ? `<div class="prompt-note">📌 ${p.note}</div>` : ''}
+          <div class="prompt-text" data-raw="${encodeURIComponent(p.text)}">${safeText}</div>
+          <button class="copy-btn" onclick="doCopy(this)" title="Copy prompt">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>`;
+    });
+    if (si < topic.sections.length - 1) html += `<div class="section-divider"></div>`;
+    html += `</div>`;
+  });
+
+  document.getElementById('promptsContainer').innerHTML = html;
+  document.getElementById('home').style.display = 'none';
+  document.getElementById('detail').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function doCopy(btn) {
+  const el = btn.closest('.prompt-card').querySelector('.prompt-text');
+  const txt = decodeURIComponent(el.getAttribute('data-raw'));
+  const ta = document.createElement('textarea');
+  ta.value = txt;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  btn.classList.add('copied');
+  btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+  setTimeout(() => {
+    btn.classList.remove('copied');
+    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+  }, 2000);
+}
+
+function goHome() {
+  document.getElementById('detail').style.display = 'none';
+  document.getElementById('home').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+renderHome();
+</script>
+</body>
+</html>
