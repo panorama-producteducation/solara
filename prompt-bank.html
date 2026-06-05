@@ -477,6 +477,20 @@ const topics = [
   {
     id: "counseling", icon: "🎓", title: "School & College Counseling",
     sections: [
+      { heading: "Graduation & Advising", prompts: [
+        { tags:[{l:"Review graduation status"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nI'm a high school counselor preparing to meet with [Student Name]. Summarize their current graduation progress using available student data. Include: (1) credits completed, (2) any credit gaps, (3) graduation requirements that appear complete or incomplete, and (4) 2 to 3 recommended next steps. Keep the tone professional and concise for use in a student advising meeting." },
+        { tags:[{l:"Identify credit gaps"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nReview [Student Name]'s available graduation and course data. Identify any credit gaps or areas where the student may need additional planning support. Then suggest a short list of follow-up questions I can ask the student to better understand their plan for completing requirements." },
+        { tags:[{l:"Track CTE pathway progress"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nSummarize [Student Name]'s progress toward their CTE pathway. Include completed pathway requirements, remaining requirements, and any next steps the student should consider. Use student-friendly language that I can share during an advising conversation." },
+        { tags:[{l:"Prepare for a senior meeting"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nI'm preparing for a senior meeting with [Student Name]. Create a 15-minute advising agenda that includes graduation status, credit review, pathway progress, attendance patterns, postsecondary goals, and action items before the next check-in." },
+        { tags:[{l:"Prepare for a student support meeting"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nI'm preparing to discuss [Student Name] in a student support meeting. Create a brief summary that includes academic progress, attendance patterns, behavior data, interventions or support notes, graduation progress, and recommended next steps. Format the response in two sections: (1) Student Snapshot and (2) Discussion Questions." },
+        { tags:[{l:"Draft a family update"},{l:"[Add student(s)]",c:"student"}], docs:[],
+          text:"[Add student(s)]\n\nDraft a warm, family-friendly email to [Student Name]'s family about their graduation progress. Include current strengths, any credit gaps or requirements to monitor, and clear next steps. Avoid jargon and keep the tone collaborative and encouraging." },
+      ]},
       { heading: "College Exploration", prompts: [
         { tags:[{l:"Postsecondary fit summary"},{l:"[Add student(s)]",c:"student"}], docs:[],
           text:"[Add student(s)]\n\n1. Summarize this student's academic and life skills data, including strengths, areas for continued growth, and the types of postsecondary programs that may be a good fit.\n\n2. Recommend a few colleges, training programs, or pathways within driving distance of [insert location] that could match their profile." },
@@ -520,7 +534,6 @@ function renderHome() {
       <span class="topic-icon">${t.icon}</span>
       <div class="topic-card-body">
         <div class="topic-title">${t.title}</div>
-        <div class="topic-desc">${t.desc}</div>
         <div class="topic-count">${countPrompts(t)} prompts</div>
       </div>
       <div class="topic-arrow">›</div>
