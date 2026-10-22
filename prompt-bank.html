@@ -20,12 +20,8 @@
   .home-hero p { color: rgba(255,255,255,0.72); font-size: 14px; max-width: 540px; margin: 0 auto; line-height: 1.65; }
 
   .topic-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    padding: 28px 32px 16px;
-    max-width: 900px;
-    margin: 0 auto;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    padding: 28px 32px 16px; max-width: 900px; margin: 0 auto;
   }
   .topic-card {
     background: #fff; border-radius: 10px; padding: 20px 56px 20px 20px;
@@ -39,7 +35,6 @@
   .topic-icon { font-size: 28px; flex-shrink: 0; margin-left: 4px; }
   .topic-card-body { display: flex; flex-direction: column; gap: 3px; }
   .topic-title { font-size: 14px; font-weight: 700; color: #161242; line-height: 1.3; }
-  .topic-desc { font-size: 12px; color: #555; line-height: 1.45; }
   .topic-count { font-size: 11px; color: #108A7D; font-weight: 600; margin-top: 4px; }
   .topic-arrow { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #006DB0; font-size: 20px; font-weight: 700; }
 
@@ -170,7 +165,8 @@ function tagClass(c) {
 }
 
 const topics = [
-  { id: "academic", icon: "📚", title: "Academic & Instructional", desc: "Lesson planning, assessments, rubrics, differentiation, ELL supports, and data analysis.",
+  {
+    id: "academic", icon: "📚", title: "Academic & Instructional",
     sections: [
       { heading: "Lesson Planning", prompts: [
         { tags:[{l:"Single-lesson plan"}], docs:[],
@@ -440,41 +436,6 @@ const topics = [
     ]
   },
   {
-    id: "sped", icon: "🏷️", title: "Special Education",
-    sections: [
-      { heading: "IEP Support", prompts: [
-        { tags:[{l:"Summarize an IEP for classroom use"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)] [Upload document: student IEP]\n\nSummarize this student's IEP in plain language for classroom use. Include the disability category, primary goals, accommodations, modifications, and service minutes. Then suggest a few specific moves I can make in everyday instruction to support this student." },
-        { tags:[{l:"Translate IEP goals into classroom strategies"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)] [Upload document: student IEP]\n\nUsing the attached IEP, suggest 3 to 5 classroom-level strategies I can use to support this student's progress toward their goals. Tie each strategy to a specific goal area in the IEP." },
-        { tags:[{l:"Draft IEP present levels (PLAAFP)"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)] [Upload document: prior IEP or recent assessment data]\n\nDraft a Present Levels of Academic Achievement and Functional Performance (PLAAFP) statement for this student using available academic and life skills data plus the attached documents. Include strengths, areas of concern, and impact on access to the general curriculum. Flag any data points that need verification before finalizing." },
-        { tags:[{l:"Draft SMART IEP goal options"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)]\n\nBased on this student's available academic data and the area of need [insert: e.g., reading fluency, written expression, math computation], draft 2 SMART IEP goal options. Include baseline references from the data, the targeted skill, the condition, the criterion, and the timeframe." },
-        { tags:[{l:"Prep for an IEP meeting"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)]\n\nI have an IEP meeting coming up for this student. Help me prepare a brief summary that includes current strengths, recent academic and behavior data, attendance trends, progress on current interventions, and 2 to 3 questions worth raising with the team." },
-        { tags:[{l:"Individual differentiation grounded in an IEP"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)] [Upload document: student IEP]\n\nI'm teaching this [lesson or unit] on [topic]. Using the attached IEP and this student's available data, suggest specific supports I can build into the lesson so it's accessible and rigorous for this student. Focus on lesson-level moves, not a separate intervention plan." },
-      ]},
-      { heading: "504 Plans", prompts: [
-        { tags:[{l:"Summarize and apply a 504 plan"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)] [Upload document: 504 plan]\n\nSummarize this student's 504 plan in plain language. Then suggest specific ways I can implement the accommodations in my [subject] class." },
-        { tags:[{l:"Draft a 504 plan starter"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)] [Upload document: medical or eligibility documentation]\n\nUsing available student data and the attached documentation, draft a starting 504 plan with proposed accommodations. Flag anything that would need a 504 team decision rather than an AI suggestion." },
-      ]},
-      { heading: "Reading Improvement Plans (RIMPs)", prompts: [
-        { tags:[{l:"Draft a RIMP from available data"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)]\n\nDraft a Reading Improvement Plan for this student using available reading assessment data, attendance trends, and any existing intervention data. Include current reading levels, areas of need, proposed strategies, a progress monitoring approach, and family communication notes. Flag any sections that need team input before finalizing." },
-      ]},
-      { heading: "Co-Teaching and General Ed Collaboration", prompts: [
-        { tags:[{l:"Plan supports across a co-taught lesson"},{l:"[Add class]",c:"class"}], docs:[],
-          text:"[Add class] [Upload document: lesson plan]\n\nI co-teach this class. Using the attached lesson plan and available class data, identify which students may need targeted support, what supports the SpEd co-teacher could provide during each part of the lesson, and which moments would be best for parallel or station teaching." },
-        { tags:[{l:"Brief a general ed teacher on a student"},{l:"[Add student(s)]",c:"student"}], docs:[],
-          text:"[Add student(s)] [Upload document: student IEP]\n\nDraft a one-page brief for a general ed teacher about this student. Include strengths, the accommodations and modifications they need to implement, what to watch for, and how to contact me with questions. Keep it practical and respectful of the teacher's time." },
-      ]},
-    ]
-  },
-  {
     id: "counseling", icon: "🎓", title: "School & College Counseling",
     sections: [
       { heading: "Graduation & Advising", prompts: [
@@ -526,7 +487,7 @@ const topics = [
   },
 ];
 
-function countPrompts(t) { return t.sections.reduce((s,sec) => s + sec.prompts.length, 0); }
+function countPrompts(t) { return t.sections.reduce((s, sec) => s + sec.prompts.length, 0); }
 
 function renderHome() {
   document.getElementById('topicGrid').innerHTML = topics.map(t => `
@@ -551,7 +512,6 @@ function openTopic(id) {
   topic.sections.forEach((sec, si) => {
     html += `<div class="use-case-block"><div class="section-heading">${sec.heading}</div>`;
     sec.prompts.forEach((p) => {
-      const uid = Math.random().toString(36).slice(2);
       let tagsHtml = p.tags.map(t => `<span class="prompt-tag ${tagClass(t.c||'')}">${t.l}</span>`).join('');
       if (p.docs && p.docs.length) p.docs.forEach(d => { tagsHtml += docTag(d); });
       const safeText = p.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
